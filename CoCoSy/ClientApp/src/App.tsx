@@ -109,19 +109,35 @@ function buildState(votesAdded: VoteAction[], optionsAdded: AddOptionAction[]): 
         });
     }
 
-    for (let voteAction of votesAdded.sort((x, y) => x.at- y.at)) {
+    const activeByPlayer = new Map<string, number>();
+    for (let voteAction of votesAdded.sort((x, y) => x.at - y.at)) {
+
+
         const target = optionMap.get(voteAction.optionName)!;
         const vote = { id: voteAction.id };
+        var currentCount = activeByPlayer.get(vote.id) ?? 0;
         if (voteAction.support) {
             if (!TryRemove(target.againsts, vote)) {
-                target.supporters.push(vote)
+                if (currentCount < 3) {
+                    target.supporters.push(vote);
+                    activeByPlayer.set(vote.id, currentCount + 1);
+                    target.support += now - voteAction.at;
+                }
+            } else {
+                activeByPlayer.set(vote.id, currentCount - 1);
+                target.support += now - voteAction.at;
             }
-            target.support += now - voteAction.at;
         } else {
             if (!TryRemove(target.supporters, vote)) {
-                target.againsts.push(vote)
+                if (currentCount < 3) {
+                    target.againsts.push(vote);
+                    activeByPlayer.set(vote.id, currentCount + 1);
+                    target.support -= now - voteAction.at;
+                }
+            } else {
+                activeByPlayer.set(vote.id, currentCount - 1);
+                target.support -= now - voteAction.at;
             }
-            target.support -= now - voteAction.at;
         }
     }
 

@@ -35,9 +35,9 @@ if (!app.Environment.IsDevelopment())
 
 app.UseCors("ReactProxy");
 
-//app.UseHttpsRedirection();
-//app.UseStaticFiles();
-//app.UseRouting();
+app.UseHttpsRedirection();
+app.UseStaticFiles();
+app.UseRouting();
 
 //app.MapControllerRoute(
 //    name: "default",

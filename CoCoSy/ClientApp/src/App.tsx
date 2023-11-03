@@ -1,14 +1,16 @@
 import { Button, TextField } from '@mui/material';
 import Typography from '@mui/material/Typography';
-import React, { Reducer, useEffect, useMemo, useReducer, useState } from 'react';
+import React, { Reducer, useEffect, useMemo, useReducer } from 'react';
 import * as signalR from "@microsoft/signalr";
 import { v4 } from 'uuid';
 
 // TODO add to git
 
+const voteLimit = 3;
+
 type Vote =
     {
-        id: string
+        voterId: string
     }
 
 type VotesSubState = {
@@ -45,27 +47,36 @@ const testState: State = {
 }
 
 type VoteAction = {
-    id: string,
+
+    voterId: string,
     optionName: string,
     at: number,
     support: boolean,
+    messageId: string
 }
 
 type SetNameAction =
     {
-        id: string,
+        voterId: string,
         at: number,
-        name: string;
+        name: string,
+        messageId: string
     }
 
 type AddOptionAction = {
     name: string;
     at: number,
+    messageId: string
 }
+
+// requests all the old messages
+type Hello = {
+}
+type Clear = {}
 
 function getUniqueStrings(list: string[]): string[] {
     const uniqueStrings: string[] = [];
-    for (const str of list) { 
+    for (const str of list) {
         if (!uniqueStrings.includes(str)) {
             uniqueStrings.push(str);
         }
@@ -73,13 +84,9 @@ function getUniqueStrings(list: string[]): string[] {
     return uniqueStrings;
 }
 
-function compareDates(a: Date, b: Date): number {
-    return a.getTime() - b.getTime();
-}
-
 function TryRemove(array: Vote[], element: Vote): boolean {
     for (let index = 0; index < array.length; index++) {
-        if (array[index].id === element.id) {
+        if (array[index].voterId === element.voterId) {
             array.splice(index, 1);
             return true;
         }
@@ -90,8 +97,8 @@ function TryRemove(array: Vote[], element: Vote): boolean {
 function buildState2(namings: SetNameAction[]): NamesSubState {
     const players = new Map<string, string>();
 
-    for (let naming of namings.sort((x, y) => x.at- y.at)) {
-        players.set(naming.id, naming.name);
+    for (let naming of namings.sort((x, y) => x.at - y.at)) {
+        players.set(naming.voterId, naming.name);
     }
     return { players: players };
 }
@@ -112,30 +119,29 @@ function buildState(votesAdded: VoteAction[], optionsAdded: AddOptionAction[]): 
     const activeByPlayer = new Map<string, number>();
     for (let voteAction of votesAdded.sort((x, y) => x.at - y.at)) {
 
-
         const target = optionMap.get(voteAction.optionName)!;
-        const vote = { id: voteAction.id };
-        var currentCount = activeByPlayer.get(vote.id) ?? 0;
+        const vote = { voterId: voteAction.voterId };
+        var currentCount = activeByPlayer.get(vote.voterId) ?? 0;
         if (voteAction.support) {
             if (!TryRemove(target.againsts, vote)) {
-                if (currentCount < 3) {
+                if (currentCount < voteLimit) {
                     target.supporters.push(vote);
-                    activeByPlayer.set(vote.id, currentCount + 1);
+                    activeByPlayer.set(vote.voterId, currentCount + 1);
                     target.support += now - voteAction.at;
                 }
             } else {
-                activeByPlayer.set(vote.id, currentCount - 1);
+                activeByPlayer.set(vote.voterId, currentCount - 1);
                 target.support += now - voteAction.at;
             }
         } else {
             if (!TryRemove(target.supporters, vote)) {
-                if (currentCount < 3) {
+                if (currentCount < voteLimit) {
                     target.againsts.push(vote);
-                    activeByPlayer.set(vote.id, currentCount + 1);
+                    activeByPlayer.set(vote.voterId, currentCount + 1);
                     target.support -= now - voteAction.at;
                 }
             } else {
-                activeByPlayer.set(vote.id, currentCount - 1);
+                activeByPlayer.set(vote.voterId, currentCount - 1);
                 target.support -= now - voteAction.at;
             }
         }
@@ -148,9 +154,9 @@ function buildState(votesAdded: VoteAction[], optionsAdded: AddOptionAction[]): 
 }
 
 type Messages = {
-    votes: VoteAction[],
-    namings: SetNameAction[],
-    options: AddOptionAction[]
+    votes: Map<string, VoteAction>,
+    namings: Map<string, SetNameAction>,
+    options: Map<string, AddOptionAction>
 }
 
 
@@ -162,8 +168,8 @@ const reducer: Reducer<State, (last: State) => State> = (state, action) => {
 function buildNetworkStateFromMessages(messages: Messages, last: State): State {
     return {
         ...last,
-        ...buildState(messages.votes, messages.options),
-        ...buildState2(messages.namings)
+        ...buildState(Array.from(messages.votes.values()), Array.from(messages.options.values())),
+        ...buildState2(Array.from(messages.namings.values()))
     }
 }
 
@@ -171,32 +177,45 @@ const useAppState = () => {
     const [state, dispatch] = useReducer(reducer, testState);
     console.log("useAppState");
 
-    const { vote, setName, addOption, refresh } = useMemo(() => {
+    const { vote, setName, addOption, refresh, clear } = useMemo(() => {
         console.log("useMemo");
 
         const connection = new signalR.HubConnectionBuilder()
-        .withUrl("https://localhost:7277/relayhub", { withCredentials: false })
-        .configureLogging(signalR.LogLevel.Information)
-        .build()
+            .withUrl("/relayhub", { withCredentials: false })//https://localhost:7277
+            .configureLogging(signalR.LogLevel.Information)
+            .build()
 
         const messages: Messages = {
-            votes: [],
-            namings: [],
-            options: []
+            votes: new Map<string, VoteAction>(),
+            namings: new Map<string, SetNameAction>(),
+            options: new Map<string, AddOptionAction>()
         }
         connection.on("VoteAction", (action) => {
             console.log("got VoteAction message", action);
-            messages.votes.push(action);
-            dispatch(lastState => buildNetworkStateFromMessages(messages, lastState));
+            if (messages.votes.get(action.messageId) === undefined) {
+                messages.votes.set(action.messageId, action);
+                dispatch(lastState => buildNetworkStateFromMessages(messages, lastState));
+            }
         });
         connection.on("SetNameAction", (action) => {
             console.log("got SetNameAction message", action);
-            messages.namings.push(action);
-            dispatch(lastState => buildNetworkStateFromMessages(messages, lastState));
+            if (messages.namings.get(action.messageId) === undefined) {
+                messages.namings.set(action.messageId, action);
+                dispatch(lastState => buildNetworkStateFromMessages(messages, lastState));
+            }
         });
         connection.on("AddOptionAction", (action) => {
             console.log("got AddOptionAction message", action);
-            messages.options.push(action);
+            if (messages.options.get(action.messageId) === undefined) {
+                messages.options.set(action.messageId, action);
+                dispatch(lastState => buildNetworkStateFromMessages(messages, lastState));
+            }
+        });
+        connection.on("Clear", (action) => {
+            console.log("got Clear message", action);
+            messages.votes = new Map<string, VoteAction>();
+            messages.namings = new Map<string, SetNameAction>();
+            messages.options = new Map<string, AddOptionAction>();
             dispatch(lastState => buildNetworkStateFromMessages(messages, lastState));
         });
 
@@ -207,8 +226,12 @@ const useAppState = () => {
             try {
                 await connection.start();
                 console.log("SignalR Connected.");
-                // say hello
-                // pull all messages
+                // clear old the old message
+                messages.votes = new Map<string, VoteAction>();
+                messages.namings = new Map<string, SetNameAction>();
+                messages.options = new Map<string, AddOptionAction>();
+                const hello: Hello = {};
+                await connection.invoke("Hello", hello);
             } catch (err) {
                 console.log(err);
                 setTimeout(start, 5000);
@@ -237,15 +260,15 @@ const useAppState = () => {
             vote: async (action: VoteAction) => {
                 console.log("sending VoteAction", action);
                 try {
-                    connection.invoke("VoteAction", action);
-                } catch (error){
+                    await connection.invoke("VoteAction", action);
+                } catch (error) {
                     console.error("could not invoke VoteAction", error);
                 }
             },
             setName: async (action: SetNameAction) => {
                 console.log("sending SetNameAction", action);
                 try {
-                    connection.invoke("SetNameAction", action);
+                    await connection.invoke("SetNameAction", action);
                 } catch (error) {
                     console.error("could not invoke SetNameAction", error);
                 }
@@ -253,19 +276,28 @@ const useAppState = () => {
             addOption: async (action: AddOptionAction) => {
                 console.log("sending AddOptionAction", action);
                 try {
-                    connection.invoke("AddOptionAction", action);
+                    await connection.invoke("AddOptionAction", action);
                 } catch (error) {
                     console.error("could not invoke AddOptionAction", error);
                 }
             },
-            refresh: () => dispatch(lastState => buildNetworkStateFromMessages(messages, lastState))
+            refresh: () => dispatch(lastState => buildNetworkStateFromMessages(messages, lastState)),
+            clear: async () => {
+                console.log("clearing");
+                try {
+                    const clear: Clear = {};
+                    await connection.invoke("Clear", clear);
+                } catch (error) {
+                    console.error("could not invoke Clear", error);
+                }
+            }
         };
     }
-    ,[]);
+        , []);
 
     useEffect(() => {
         const timer = setTimeout(() => refresh()
-        , 1000);
+            , 1000);
         return () => clearTimeout(timer);
     });
 
@@ -275,6 +307,7 @@ const useAppState = () => {
             vote: vote,
             setName: setName,
             addOption: addOption,
+            clear: clear,
             setToAdd: (value: string) => {
                 console.log("setToAdd:" + value);
                 return dispatch((lastState) => ({ ...lastState, toAdd: value }))
@@ -287,28 +320,16 @@ const useAppState = () => {
     }
 }
 
-const id: string = v4();
+const voterId: string = v4();
 
-//type CountUpParams = {
-//    time: number,
-//    multiplyer: number,
-//    base: number,
-//}
-
-//function CountUp(params: CountUpParams) {
-
-//    const [timeLeft, setTimeLeft] = useState(0);
-
-//    useEffect(() => {
-//        const timer = setTimeout(() => {
-//            setTimeLeft(calculateTimeLeft());
-//        }, 1000);
-
-//        return () => clearTimeout(timer);
-//    });
-
-//    return <Typography>{params.base + params.multiplyer * (Date.now() - params.time)}</Typography>;
-//}
+function CanRetractVote(otherSideVotes :Vote[]): boolean {
+    for (let otherSideVote of otherSideVotes) {
+        if (voterId === otherSideVote.voterId) {
+            return true;
+        }
+    }
+    return false;
+}
 
 function App() {
     console.log("App");
@@ -316,6 +337,9 @@ function App() {
 
     // gross, refresh every second
 
+    const currentVotes = state.options.map(x => x.againsts.filter(y => y.voterId === voterId).length + x.supporters.filter(y => y.voterId === voterId).length).reduce((x, y) => x + y, 0);
+
+    const outOfVotes = currentVotes >= voteLimit;
 
     return (
         <>
@@ -329,33 +353,40 @@ function App() {
             <Button onClick={() => {
                 actions.addOption({
                     at: Date.now(),
-                    name: state.toAdd
+                    name: state.toAdd,
+                    messageId: v4(),
                 });
                 actions.setToAdd("");
             }}>Add Option</Button>
             {state.options.map(option =>
                 <div>
                     <Typography>{option.name} {option.support}</Typography>
-                    <Button onClick={() => 
+                    <Button
+                        disabled={outOfVotes && !CanRetractVote(option.supporters)}
+                        onClick={() =>
                         actions.vote({
                             at: Date.now(),
                             optionName: option.name,
                             support: false,
-                            id: id
+                            voterId: voterId,
+                            messageId: v4(),
                         })
                     }>{"<"}</Button>
                     {option.againsts.map(against =>
-                        <Typography>{"<"}{state.players.get(against.id) ?? against.id }</Typography>
+                        <Typography>{"<"}{state.players.get(against.voterId) ?? against.voterId}</Typography>
                     )}
-                    <Button onClick={() =>
+                    <Button
+                        disabled={outOfVotes && !CanRetractVote(option.againsts)}
+                        onClick={() =>
                         actions.vote({
                             at: Date.now(),
                             optionName: option.name,
                             support: true,
-                            id: id
+                            voterId: voterId,
+                            messageId: v4(),
                         })}>{">"}</Button>
                     {option.supporters.map(supporter =>
-                        <Typography>{">"}{state.players.get(supporter.id) ?? supporter.id}</Typography>
+                        <Typography>{">"}{state.players.get(supporter.voterId) ?? supporter.voterId}</Typography>
                     )}
                 </div>
             )}
@@ -367,13 +398,13 @@ function App() {
                 actions.setName({
                     at: Date.now(),
                     name: state.yourName,
-                    id: id
+                    voterId: voterId,
+                    messageId: v4(),
                 });
             }}>Set Name</Button>
+            <Button onClick={() => actions.clear()}>Clear</Button>
         </>
     );
 }
-
-
 
 export { App };

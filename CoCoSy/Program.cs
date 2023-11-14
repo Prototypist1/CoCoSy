@@ -36,7 +36,7 @@ var app = builder.Build();
 //app.UseCors("ReactProxy");
 
 //app.UseHttpsRedirection();
-//app.UseStaticFiles();
+app.UseStaticFiles();
 //app.UseRouting();
 
 //app.MapControllerRoute(
@@ -47,7 +47,7 @@ var app = builder.Build();
 
 app.MapHub<RelayHub>("/relayhub");
 
-//app.MapFallbackToFile("index.html");
+app.MapFallbackToFile("index.html");
 
 
 app.Run();

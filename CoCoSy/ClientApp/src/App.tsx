@@ -161,7 +161,6 @@ type Messages = {
 
 
 const reducer: Reducer<State, (last: State) => State> = (state, action) => {
-    console.log("teducer");
     return action(state);
 };
 
@@ -175,13 +174,17 @@ function buildNetworkStateFromMessages(messages: Messages, last: State): State {
 
 const useAppState = () => {
     const [state, dispatch] = useReducer(reducer, testState);
-    console.log("useAppState");
 
     const { vote, setName, addOption, refresh, clear } = useMemo(() => {
-        console.log("useMemo");
 
         const connection = new signalR.HubConnectionBuilder()
-            .withUrl("/relayhub", { withCredentials: false })//https://localhost:7277
+            .withUrl("https://localhost:7277/relayhub", {
+                withCredentials: false,
+                transport: signalR.HttpTransportType.WebSockets,
+                skipNegotiation: true
+            })
+            // use on local: https://localhost:7277/relayhub
+            // use in azure: /relayhub
             .configureLogging(signalR.LogLevel.Information)
             .build()
 
@@ -234,7 +237,7 @@ const useAppState = () => {
                 await connection.invoke("Hello", hello);
             } catch (err) {
                 console.log(err);
-                setTimeout(start, 5000);
+                //setTimeout(start, 5000);
             }
         };
 
@@ -253,7 +256,7 @@ const useAppState = () => {
         // some of these being sent to far from when they happened could be trouble
 
         connection.onclose(async () => {
-            await start();
+            //await start();
         });
 
         return {
@@ -309,11 +312,9 @@ const useAppState = () => {
             addOption: addOption,
             clear: clear,
             setToAdd: (value: string) => {
-                console.log("setToAdd:" + value);
                 return dispatch((lastState) => ({ ...lastState, toAdd: value }))
             },
             setYourName: (value: string) => {
-                console.log("setYourName");
                 dispatch((lastState) => ({ ...lastState, yourName: value }));
             }
         }
@@ -332,7 +333,6 @@ function CanRetractVote(otherSideVotes :Vote[]): boolean {
 }
 
 function App() {
-    console.log("App");
     const { state, actions } = useAppState();
 
     // gross, refresh every second

@@ -5,13 +5,15 @@ const target = env.ASPNETCORE_HTTPS_PORT ? `https://localhost:${env.ASPNETCORE_H
   env.ASPNETCORE_URLS ? env.ASPNETCORE_URLS.split(';')[0] : 'http://localhost:63532';
 
 const context = [
-  "/weatherforecast",
+  "/relayhub",
 ];
 
 const onError = (err, req, resp, target) => {
     console.error(`${err.message}`);
 }
 
+
+console.log("target", target);
 module.exports = function (app) {
   const appProxy = createProxyMiddleware(context, {
     proxyTimeout: 10000,
@@ -19,12 +21,13 @@ module.exports = function (app) {
     // Handle errors to prevent the proxy middleware from crashing when
     // the ASP NET Core webserver is unavailable
     onError: onError,
-    secure: false,
+    //secure: false,
     // Uncomment this line to add support for proxying websockets
-    //ws: true, 
+    ws: true, 
     headers: {
       Connection: 'Keep-Alive'
     }
+    //changeOrigin: true,
   });
 
   app.use(appProxy);

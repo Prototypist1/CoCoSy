@@ -1,4 +1,4 @@
-import { Button, TextField } from '@mui/material';
+import { Button, Stack, TextField } from '@mui/material';
 import Typography from '@mui/material/Typography';
 import React, { Reducer, useEffect, useMemo, useReducer } from 'react';
 import * as signalR from "@microsoft/signalr";
@@ -358,38 +358,43 @@ function App() {
                 });
                 actions.setToAdd("");
             }}>Add Option</Button>
-            {state.options.map(option =>
-                <div>
-                    <Typography>{option.name} {option.support}</Typography>
-                    <Button
-                        disabled={outOfVotes && !CanRetractVote(option.supporters)}
-                        onClick={() =>
-                        actions.vote({
-                            at: Date.now(),
-                            optionName: option.name,
-                            support: false,
-                            voterId: voterId,
-                            messageId: v4(),
-                        })
-                    }>{"<"}</Button>
-                    {option.againsts.map(against =>
-                        <Typography>{"<"}{state.players.get(against.voterId) ?? against.voterId}</Typography>
-                    )}
-                    <Button
-                        disabled={outOfVotes && !CanRetractVote(option.againsts)}
-                        onClick={() =>
-                        actions.vote({
-                            at: Date.now(),
-                            optionName: option.name,
-                            support: true,
-                            voterId: voterId,
-                            messageId: v4(),
-                        })}>{">"}</Button>
-                    {option.supporters.map(supporter =>
-                        <Typography>{">"}{state.players.get(supporter.voterId) ?? supporter.voterId}</Typography>
-                    )}
-                </div>
-            )}
+            <Stack
+                direction="column"
+                justifyContent="flex-start"
+                alignItems="center"
+                spacing={2}>
+                {state.options.map(option =>
+                    <Stack
+                        direction="row"
+                        justifyContent="baseline"
+                        alignItems="center"
+                        spacing={2}>
+                        <Button
+                            disabled={outOfVotes && !CanRetractVote(option.supporters)}
+                            onClick={() =>
+                            actions.vote({
+                                at: Date.now(),
+                                optionName: option.name,
+                                support: false,
+                                voterId: voterId,
+                                messageId: v4(),
+                            })
+                        }>{"<"}</Button>
+                        <Typography>{option.name} {option.support}</Typography>
+                        <Button
+                            disabled={outOfVotes && !CanRetractVote(option.againsts)}
+                            onClick={() =>
+                            actions.vote({
+                                at: Date.now(),
+                                optionName: option.name,
+                                support: true,
+                                voterId: voterId,
+                                messageId: v4(),
+                            })
+                        }>{">"}</Button>
+                    </Stack>
+                )}
+            </Stack>
             <TextField
                 value={state.yourName}
                 onChange={(value) => actions.setYourName(value.target.value)}

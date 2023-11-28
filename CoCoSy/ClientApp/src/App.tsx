@@ -1,4 +1,4 @@
-import { Button, Chip, Stack, TextField } from '@mui/material';
+import { Box, Button, Chip, Stack, TextField } from '@mui/material';
 import Typography from '@mui/material/Typography';
 import React, { Reducer, useEffect, useMemo, useReducer } from 'react';
 import * as signalR from "@microsoft/signalr";
@@ -344,13 +344,75 @@ function App() {
 
     return (
         <Stack
-            direction = "column"
-            justifyContent = "flex-start"
-            alignItems = "center"
-            spacing = {2}>
-            <Typography variant="h1" component="h2">
+            direction="column"
+            justifyContent="flex-start"
+            alignItems="center"
+            spacing={2}
+            sx={{ width: 1 }}>
+            <Typography variant="h1" /*component="h2"*/>
                 CoCoSy
             </Typography >
+            <Grid container columnSpacing={2} sx={{width:1}}>
+                {state.options.map(option => [
+                    <Grid xs={5}>
+                        <Stack
+                            direction="row"
+                            justifyContent="flex-end"
+                            alignItems="baseline"
+                            spacing={2}
+                            useFlexGap={true}
+                            flexWrap="wrap"                        >
+                            {option.againsts.map(against =>
+                                <Chip label={state.players.get(against.voterId) ?? against.voterId} sx={{ width: 150 }} />
+                            )}
+                        </Stack>
+                    </Grid>,
+                    <Grid xs={2} >
+                        <Stack
+                            direction="row"
+                            justifyContent="space-between"
+                            alignItems="baseline"
+                            spacing={2}>
+                            <Button
+                                disabled={outOfVotes && !CanRetractVote(option.supporters)}
+                                onClick={() =>
+                                    actions.vote({
+                                        at: Date.now(),
+                                        optionName: option.name,
+                                        support: false,
+                                        voterId: voterId,
+                                        messageId: v4(),
+                                    })
+                                }>{"<"}</Button>
+                            <Typography>{option.name}</Typography> <Typography variant="h6"> {(option.support / 1000).toFixed()}</Typography>
+                            <Button
+                                disabled={outOfVotes && !CanRetractVote(option.againsts)}
+                                onClick={() =>
+                                    actions.vote({
+                                        at: Date.now(),
+                                        optionName: option.name,
+                                        support: true,
+                                        voterId: voterId,
+                                        messageId: v4(),
+                                    })
+                                }>{">"}</Button>
+                        </Stack>
+                    </Grid>,
+                    <Grid xs={5}>
+                        <Stack
+                            direction="row"
+                            justifyContent="flex-start"
+                            alignItems="baseline"
+                            spacing={2}
+                            useFlexGap={true}
+                            flexWrap="wrap">
+                            {option.supporters.map(supporter =>
+                                <Chip label={state.players.get(supporter.voterId) ?? supporter.voterId} sx={{ width: 150 }} />
+                            )}
+                        </Stack>
+                    </Grid>,
+                ]).flatMap(x=>x)}
+            </Grid>
             <TextField
                 value={state.toAdd}
                 onChange={(value) => actions.setToAdd(value.target.value)}
@@ -363,68 +425,6 @@ function App() {
                 });
                 actions.setToAdd("");
             }}>Add Option</Button>
-            <Stack
-                direction="column"
-                justifyContent="flex-start"
-                alignItems="center"
-                spacing={2}>
-                {state.options.map(option =>
-                    <Grid container columnSpacing={2}>
-                        <Grid xs>
-                            <Stack
-                                direction="row"
-                                justifyContent="flex-end"
-                                alignItems="baseline"
-                                spacing={2}>
-                            {option.againsts.map(against =>
-                                <Chip label={state.players.get(against.voterId) ?? against.voterId}/>
-                                )}
-                            </Stack>
-                        </Grid>
-                        <Grid xs="auto" >
-                            <Stack
-                                direction="row"
-                                alignItems="baseline"
-                                spacing={2}>                               
-                                <Button
-                                    disabled={outOfVotes && !CanRetractVote(option.supporters)}
-                                    onClick={() =>
-                                        actions.vote({
-                                            at: Date.now(),
-                                            optionName: option.name,
-                                            support: false,
-                                            voterId: voterId,
-                                            messageId: v4(),
-                                        })
-                                    }>{"<"}</Button>
-                                <Typography>{option.name} {option.support}</Typography>
-                                <Button
-                                    disabled={outOfVotes && !CanRetractVote(option.againsts)}
-                                    onClick={() =>
-                                        actions.vote({
-                                            at: Date.now(),
-                                            optionName: option.name,
-                                            support: true,
-                                            voterId: voterId,
-                                            messageId: v4(),
-                                        })
-                                    }>{">"}</Button>
-                            </Stack>
-                        </Grid>
-                        <Grid xs>
-                            <Stack
-                                direction="row"
-                                justifyContent="flex-start"
-                                alignItems="baseline"
-                                spacing={2}>
-                                {option.supporters.map(supporter =>
-                                    <Chip label={state.players.get(supporter.voterId) ?? supporter.voterId} />
-                                )}
-                            </Stack>
-                        </Grid>
-                    </Grid>
-                )}
-            </Stack>
             <TextField
                 value={state.yourName}
                 onChange={(value) => actions.setYourName(value.target.value)}

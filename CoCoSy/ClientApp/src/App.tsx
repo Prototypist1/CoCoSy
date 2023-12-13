@@ -4,6 +4,7 @@ import React, { Reducer, useEffect, useMemo, useReducer } from 'react';
 import * as signalR from "@microsoft/signalr";
 import { v4 } from 'uuid';
 import Grid from '@mui/material/Unstable_Grid2';
+import { DragDropContext, Droppable, Draggable, ResponderProvided, DropResult } from "react-beautiful-dnd";
 
 // TODO add to git
 
@@ -11,7 +12,8 @@ const voteLimit = 3;
 
 type Vote =
     {
-        voterId: string
+        voterId: string,
+        voteId: string
     }
 
 type VotesSubState = {
@@ -53,7 +55,8 @@ type VoteAction = {
     optionName: string,
     at: number,
     support: boolean,
-    messageId: string
+    messageId: string,
+    voteId: string
 }
 
 type SetNameAction =
@@ -121,7 +124,7 @@ function buildState(votesAdded: VoteAction[], optionsAdded: AddOptionAction[]): 
     for (let voteAction of votesAdded.sort((x, y) => x.at - y.at)) {
 
         const target = optionMap.get(voteAction.optionName)!;
-        const vote = { voterId: voteAction.voterId };
+        const vote = { voterId: voteAction.voterId, voteId: voteAction.voteId };
         var currentCount = activeByPlayer.get(vote.voterId) ?? 0;
         if (voteAction.support) {
             if (!TryRemove(target.againsts, vote)) {
@@ -342,6 +345,36 @@ function App() {
 
     const outOfVotes = currentVotes >= voteLimit;
 
+    function maxSupport() {
+        let maxFound = 10000;
+        for (let option of state.options) {
+            if (Math.abs(option.support) > maxFound) {
+                maxFound = Math.abs(option.support)     
+            }
+        }
+        return maxFound
+    } 
+    function onDragEnd(result: DropResult, provided: ResponderProvided) {
+        if (!result.destination) {
+            return;
+        }
+        actions.vote({
+            at: Date.now(),
+            optionName: result.source.droppableId,
+            support: true,
+            voterId: voterId,
+            messageId: v4(),
+            voteId: v4(),
+        })
+        actions.vote({
+            at: Date.now(),
+            optionName: result.destination.droppableId,
+            support: false,
+            voterId: voterId,
+            messageId: v4(),
+            voteId: v4(),
+        })
+    }
     return (
         <Stack
             direction="column"
@@ -351,68 +384,93 @@ function App() {
             sx={{ width: 1 }}>
             <Typography variant="h1" /*component="h2"*/>
                 CoCoSy
-            </Typography >
-            <Grid container columnSpacing={2} sx={{width:1}}>
-                {state.options.map(option => [
-                    <Grid xs={5}>
-                        <Stack
-                            direction="row"
-                            justifyContent="flex-end"
-                            alignItems="baseline"
-                            spacing={2}
-                            useFlexGap={true}
-                            flexWrap="wrap"                        >
-                            {option.againsts.map(against =>
-                                <Chip label={state.players.get(against.voterId) ?? against.voterId} sx={{ width: 150 }} />
-                            )}
-                        </Stack>
-                    </Grid>,
-                    <Grid xs={2} >
-                        <Stack
-                            direction="row"
-                            justifyContent="space-between"
-                            alignItems="baseline"
-                            spacing={2}>
-                            <Button
-                                disabled={outOfVotes && !CanRetractVote(option.supporters)}
-                                onClick={() =>
-                                    actions.vote({
-                                        at: Date.now(),
-                                        optionName: option.name,
-                                        support: false,
-                                        voterId: voterId,
-                                        messageId: v4(),
-                                    })
-                                }>{"<"}</Button>
-                            <Typography>{option.name}</Typography> <Typography variant="h6"> {(option.support / 1000).toFixed()}</Typography>
-                            <Button
-                                disabled={outOfVotes && !CanRetractVote(option.againsts)}
-                                onClick={() =>
-                                    actions.vote({
-                                        at: Date.now(),
-                                        optionName: option.name,
-                                        support: true,
-                                        voterId: voterId,
-                                        messageId: v4(),
-                                    })
-                                }>{">"}</Button>
-                        </Stack>
-                    </Grid>,
-                    <Grid xs={5}>
-                        <Stack
-                            direction="row"
-                            justifyContent="flex-start"
-                            alignItems="baseline"
-                            spacing={2}
-                            useFlexGap={true}
-                            flexWrap="wrap">
-                            {option.supporters.map(supporter =>
-                                <Chip label={state.players.get(supporter.voterId) ?? supporter.voterId} sx={{ width: 150 }} />
-                            )}
-                        </Stack>
-                    </Grid>,
-                ]).flatMap(x=>x)}
-            </Grid>
+            </Typography>
+            <DragDropContext onDragEnd={onDragEnd}>
+                <Grid container columnSpacing={0} sx={{width:1}}>
+                    {state.options.map(option => [
+                        <Grid xs={5}> {/*people who voted against */}
+                            <Droppable droppableId={option.name} direction="horizontal">
+                                {(provided, snapshot) => (
+                                    <Stack
+                                        direction="row"
+                                        justifyContent="flex-end"
+                                        alignItems="baseline"
+                                        spacing={2}
+                                        useFlexGap={true}
+                                        flexWrap="wrap"
+                                        ref={provided.innerRef}
+                                        {...provided.droppableProps}>
+                                            {option.againsts.map((against, index) =>
+                                                <Draggable draggableId={against.voteId} index={index}>
+                                                    {(provided, snapshot) => (
+                                                        <Chip label={(state.players.get(against.voterId) ?? against.voterId) + (against.voteId)} sx={{ width: 150 }} ref={provided.innerRef}
+                                                            {...provided.draggableProps}{...provided.dragHandleProps} />
+                                                    )}
+                                                </Draggable>
+                                            )}
+                                    </Stack>
+                                )}
+                                </Droppable>
+                        </Grid>,
+                        <Grid xs={2} > {/*buttons, name, number*/}
+                            <Stack
+                                direction="row"
+                                justifyContent="space-between"
+                                alignItems="baseline"
+                                spacing={2}>
+                                <Button
+                                    disabled={outOfVotes && !CanRetractVote(option.supporters)}
+                                    onClick={() =>
+                                        actions.vote({
+                                            at: Date.now(),
+                                            optionName: option.name,
+                                            support: false,
+                                            voterId: voterId,
+                                            messageId: v4(),
+                                            voteId: v4(),
+                                        })
+                                    }>{"<"}</Button>
+                                <Typography>{option.name}</Typography> <Typography variant="h6"> {(option.support / 1000).toFixed()}</Typography>
+                                <Button
+                                    disabled={outOfVotes && !CanRetractVote(option.againsts)}
+                                    onClick={() =>
+                                        actions.vote({
+                                            at: Date.now(),
+                                            optionName: option.name,
+                                            support: true,
+                                            voterId: voterId,
+                                            messageId: v4(),
+                                            voteId: v4(),
+                                        })
+                                    }>{">"}</Button>
+                            </Stack>
+                        </Grid>,
+                        <Grid xs={5}> {/*people who voted for*/}
+                            <Stack
+                                direction="row"
+                                justifyContent="flex-start"
+                                alignItems="baseline"
+                                spacing={2}
+                                useFlexGap={true}
+                                flexWrap="wrap">
+                                {option.supporters.map(supporter =>
+                                    <Chip label={state.players.get(supporter.voterId) ?? supporter.voterId} sx={{ width: 150 }} />
+                                )}
+                            </Stack>
+                        </Grid>,
+                        <Grid xs={12} sx={{ backgroundColor: "black", height: "1px" }}>
+                        </Grid>,
+                        <Grid xs={Math.min(6, 6 + 6*(option.support / maxSupport()))} sx={{ height: "10px", transition: "width 1s linear" }}>
+                        </Grid>,
+                        <Grid xs={Math.min(6, 6*(-option.support / maxSupport()))} sx={{ backgroundColor: "lightgreen", height: "10px", transition: "width 1s linear" }}>
+                        </Grid>,
+                        <Grid xs={Math.min(6, 6*(option.support / maxSupport()))} sx={{ backgroundColor: "lightgreen", height: "10px", transition: "width 1s linear" }}>
+                        </Grid>,
+                        <Grid xs={Math.min(6, 6 - 6*(option.support / maxSupport()))} sx={{height: "10px", transition: "width 1s linear" }}>
+                        </Grid>,
+                    ]).flatMap(x=>x)}
+                </Grid>
+            </DragDropContext>
             <TextField
                 value={state.toAdd}
                 onChange={(value) => actions.setToAdd(value.target.value)}

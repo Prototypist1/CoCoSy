@@ -6,8 +6,6 @@ import { v4 } from 'uuid';
 import Grid from '@mui/material/Unstable_Grid2';
 import { DragDropContext, Droppable, Draggable, ResponderProvided, DropResult } from "react-beautiful-dnd";
 
-// TODO add to git
-
 const voteLimit = 3;
 
 type Vote =

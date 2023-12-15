@@ -77,8 +77,8 @@ namespace CoCoSy.Hubs
         public double at { get; set; }
         public bool support { get; set; }
         public string messageId { get; set; }
-
         public string voteId { get; set; }
+        public bool add { get; set; }
     }
 
     public class SetNameAction

@@ -56,7 +56,8 @@ type VoteAction = {
     at: number,
     support: boolean,
     messageId: string,
-    voteId: string
+    voteId: string,
+    add: boolean, // or remove
 }
 
 type SetNameAction =
@@ -90,7 +91,7 @@ function getUniqueStrings(list: string[]): string[] {
 
 function TryRemove(array: Vote[], element: Vote): boolean {
     for (let index = 0; index < array.length; index++) {
-        if (array[index].voterId === element.voterId) {
+        if (array[index].voteId === element.voteId) {
             array.splice(index, 1);
             return true;
         }
@@ -127,26 +128,30 @@ function buildState(votesAdded: VoteAction[], optionsAdded: AddOptionAction[]): 
         const vote = { voterId: voteAction.voterId, voteId: voteAction.voteId };
         var currentCount = activeByPlayer.get(vote.voterId) ?? 0;
         if (voteAction.support) {
-            if (!TryRemove(target.againsts, vote)) {
+            if (voteAction.add) {
                 if (currentCount < voteLimit) {
                     target.supporters.push(vote);
                     activeByPlayer.set(vote.voterId, currentCount + 1);
                     target.support += now - voteAction.at;
                 }
             } else {
-                activeByPlayer.set(vote.voterId, currentCount - 1);
-                target.support += now - voteAction.at;
+                if (TryRemove(target.supporters, vote)) {
+                    activeByPlayer.set(vote.voterId, currentCount - 1);
+                    target.support -= now - voteAction.at;
+                }
             }
         } else {
-            if (!TryRemove(target.supporters, vote)) {
+            if (voteAction.add) {
                 if (currentCount < voteLimit) {
                     target.againsts.push(vote);
                     activeByPlayer.set(vote.voterId, currentCount + 1);
                     target.support -= now - voteAction.at;
                 }
             } else {
-                activeByPlayer.set(vote.voterId, currentCount - 1);
-                target.support -= now - voteAction.at;
+                if (TryRemove(target.againsts, vote)) {
+                    activeByPlayer.set(vote.voterId, currentCount - 1);
+                    target.support += now - voteAction.at;
+                }
             }
         }
     }
@@ -327,13 +332,13 @@ const useAppState = () => {
 
 const voterId: string = v4();
 
-function CanRetractVote(otherSideVotes :Vote[]): boolean {
+function CanRetractVote(otherSideVotes: Vote[]): string | undefined {
     for (let otherSideVote of otherSideVotes) {
         if (voterId === otherSideVote.voterId) {
-            return true;
+            return otherSideVote.voteId;
         }
     }
-    return false;
+    return undefined;
 }
 
 function App() {
@@ -349,11 +354,11 @@ function App() {
         let maxFound = 10000;
         for (let option of state.options) {
             if (Math.abs(option.support) > maxFound) {
-                maxFound = Math.abs(option.support)     
+                maxFound = Math.abs(option.support)
             }
         }
         return maxFound
-    } 
+    }
     function onDragEnd(result: DropResult, provided: ResponderProvided) {
         if (!result.destination) {
             return;
@@ -361,10 +366,11 @@ function App() {
         actions.vote({
             at: Date.now(),
             optionName: result.source.droppableId,
-            support: true,
+            support: false,
             voterId: voterId,
             messageId: v4(),
-            voteId: v4(),
+            voteId: result.draggableId,
+            add: false,
         })
         actions.vote({
             at: Date.now(),
@@ -372,7 +378,8 @@ function App() {
             support: false,
             voterId: voterId,
             messageId: v4(),
-            voteId: v4(),
+            voteId: result.draggableId,
+            add: true,
         })
     }
     return (
@@ -386,7 +393,7 @@ function App() {
                 CoCoSy
             </Typography>
             <DragDropContext onDragEnd={onDragEnd}>
-                <Grid container columnSpacing={0} sx={{width:1}}>
+                <Grid container columnSpacing={0} sx={{ width: 1 }}>
                     {state.options.map(option => [
                         <Grid xs={5}> {/*people who voted against */}
                             <Droppable droppableId={option.name} direction="horizontal">
@@ -400,17 +407,17 @@ function App() {
                                         flexWrap="wrap"
                                         ref={provided.innerRef}
                                         {...provided.droppableProps}>
-                                            {option.againsts.map((against, index) =>
-                                                <Draggable draggableId={against.voteId} index={index}>
-                                                    {(provided, snapshot) => (
-                                                        <Chip label={(state.players.get(against.voterId) ?? against.voterId) + (against.voteId)} sx={{ width: 150 }} ref={provided.innerRef}
-                                                            {...provided.draggableProps}{...provided.dragHandleProps} />
-                                                    )}
-                                                </Draggable>
-                                            )}
+                                        {option.againsts.map((against, index) =>
+                                            <Draggable draggableId={against.voteId} index={index}>
+                                                {(provided, snapshot) => (
+                                                    <Chip label={(state.players.get(against.voterId) ?? against.voterId) + (against.voteId)} sx={{ width: 150 }} ref={provided.innerRef}
+                                                        {...provided.draggableProps}{...provided.dragHandleProps} />
+                                                )}
+                                            </Draggable>
+                                        )}
                                     </Stack>
                                 )}
-                                </Droppable>
+                            </Droppable>
                         </Grid>,
                         <Grid xs={2} > {/*buttons, name, number*/}
                             <Stack
@@ -419,30 +426,58 @@ function App() {
                                 alignItems="baseline"
                                 spacing={2}>
                                 <Button
-                                    disabled={outOfVotes && !CanRetractVote(option.supporters)}
-                                    onClick={() =>
-                                        actions.vote({
-                                            at: Date.now(),
-                                            optionName: option.name,
-                                            support: false,
-                                            voterId: voterId,
-                                            messageId: v4(),
-                                            voteId: v4(),
-                                        })
-                                    }>{"<"}</Button>
+                                    disabled={outOfVotes && (CanRetractVote(option.supporters) === undefined)}
+                                    onClick={() => {
+                                        const retractVote = CanRetractVote(option.supporters);
+                                        if (retractVote !== undefined) {
+                                            actions.vote({
+                                                at: Date.now(),
+                                                optionName: option.name,
+                                                support: true,
+                                                voterId: voterId,
+                                                messageId: v4(),
+                                                voteId: retractVote,
+                                                add: false,
+                                            })
+                                        } else {
+                                            actions.vote({
+                                                at: Date.now(),
+                                                optionName: option.name,
+                                                support: false,
+                                                voterId: voterId,
+                                                messageId: v4(),
+                                                voteId: v4(),
+                                                add: true,
+                                            })
+                                        }
+                                    }}>{"<"}</Button>
                                 <Typography>{option.name}</Typography> <Typography variant="h6"> {(option.support / 1000).toFixed()}</Typography>
                                 <Button
                                     disabled={outOfVotes && !CanRetractVote(option.againsts)}
-                                    onClick={() =>
-                                        actions.vote({
-                                            at: Date.now(),
-                                            optionName: option.name,
-                                            support: true,
-                                            voterId: voterId,
-                                            messageId: v4(),
-                                            voteId: v4(),
-                                        })
-                                    }>{">"}</Button>
+                                    onClick={() => {
+                                        const retractVote = CanRetractVote(option.againsts);
+                                        if (retractVote !== undefined) {
+                                            actions.vote({
+                                                at: Date.now(),
+                                                optionName: option.name,
+                                                support: false,
+                                                voterId: voterId,
+                                                messageId: v4(),
+                                                voteId: retractVote,
+                                                add: false,
+                                            })
+                                        } else {
+                                            actions.vote({
+                                                at: Date.now(),
+                                                optionName: option.name,
+                                                support: true,
+                                                voterId: voterId,
+                                                messageId: v4(),
+                                                voteId: v4(),
+                                                add: true,
+                                            })
+                                        }
+                                    }}>{">"}</Button>
                             </Stack>
                         </Grid>,
                         <Grid xs={5}> {/*people who voted for*/}
@@ -460,15 +495,15 @@ function App() {
                         </Grid>,
                         <Grid xs={12} sx={{ backgroundColor: "black", height: "1px" }}>
                         </Grid>,
-                        <Grid xs={Math.min(6, 6 + 6*(option.support / maxSupport()))} sx={{ height: "10px", transition: "width 1s linear" }}>
+                        <Grid xs={Math.min(6, 6 + 6 * (option.support / maxSupport()))} sx={{ height: "10px", transition: "width 1s linear" }}>
                         </Grid>,
-                        <Grid xs={Math.min(6, 6*(-option.support / maxSupport()))} sx={{ backgroundColor: "lightgreen", height: "10px", transition: "width 1s linear" }}>
+                        <Grid xs={Math.min(6, 6 * (-option.support / maxSupport()))} sx={{ backgroundColor: "lightgreen", height: "10px", transition: "width 1s linear" }}>
                         </Grid>,
-                        <Grid xs={Math.min(6, 6*(option.support / maxSupport()))} sx={{ backgroundColor: "lightgreen", height: "10px", transition: "width 1s linear" }}>
+                        <Grid xs={Math.min(6, 6 * (option.support / maxSupport()))} sx={{ backgroundColor: "lightgreen", height: "10px", transition: "width 1s linear" }}>
                         </Grid>,
-                        <Grid xs={Math.min(6, 6 - 6*(option.support / maxSupport()))} sx={{height: "10px", transition: "width 1s linear" }}>
+                        <Grid xs={Math.min(6, 6 - 6 * (option.support / maxSupport()))} sx={{ height: "10px", transition: "width 1s linear" }}>
                         </Grid>,
-                    ]).flatMap(x=>x)}
+                    ]).flatMap(x => x)}
                 </Grid>
             </DragDropContext>
             <TextField
@@ -476,12 +511,14 @@ function App() {
                 onChange={(value) => actions.setToAdd(value.target.value)}
             />
             <Button onClick={() => {
-                actions.addOption({
-                    at: Date.now(),
-                    name: state.toAdd,
-                    messageId: v4(),
-                });
-                actions.setToAdd("");
+                if (state.toAdd !== "") {
+                    actions.addOption({
+                        at: Date.now(),
+                        name: state.toAdd,
+                        messageId: v4(),
+                    });
+                    actions.setToAdd("");
+                }
             }}>Add Option</Button>
             <TextField
                 value={state.yourName}

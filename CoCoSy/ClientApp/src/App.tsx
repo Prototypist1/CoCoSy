@@ -361,19 +361,21 @@ function App() {
         if (!result.destination) {
             return;
         }
+        const sourceSupport = result.source.droppableId.startsWith("+");
         actions.vote({
             at: Date.now(),
-            optionName: result.source.droppableId,
-            support: false,
+            optionName: result.source.droppableId.substring(1),
+            support: sourceSupport,
             voterId: voterId,
             messageId: v4(),
             voteId: result.draggableId,
             add: false,
         })
+        const destinationSupport = result.destination.droppableId.startsWith("+");
         actions.vote({
             at: Date.now(),
-            optionName: result.destination.droppableId,
-            support: false,
+            optionName: result.destination.droppableId.substring(1),
+            support: destinationSupport,
             voterId: voterId,
             messageId: v4(),
             voteId: result.draggableId,
@@ -393,13 +395,14 @@ function App() {
             <DragDropContext onDragEnd={onDragEnd}>
                 <Grid container columnSpacing={0} sx={{ width: 1 }}>
                     {state.options.map(option => [
-                        <Grid xs={5}> {/*people who voted against */}
-                            <Droppable droppableId={option.name} direction="horizontal">
+                        <Grid xs={4.5}> {/*people who voted against */}
+                            <Droppable droppableId={"-" + option.name} direction="horizontal" >
                                 {(provided, snapshot) => (
                                     <Stack
+                                        sx={{height:"100%"}}
                                         direction="row"
                                         justifyContent="flex-end"
-                                        alignItems="baseline"
+                                        alignItems="stretch"
                                         spacing={2}
                                         useFlexGap={true}
                                         flexWrap="wrap"
@@ -408,7 +411,7 @@ function App() {
                                         {option.againsts.map((against, index) =>
                                             <Draggable draggableId={against.voteId} index={index}>
                                                 {(provided, snapshot) => (
-                                                    <Chip label={(state.players.get(against.voterId) ?? against.voterId) + (against.voteId)} sx={{ width: 150 }} ref={provided.innerRef}
+                                                    <Chip label={(state.players.get(against.voterId) ?? against.voterId)} sx={{ width: 150 }} ref={provided.innerRef}
                                                         {...provided.draggableProps}{...provided.dragHandleProps} />
                                                 )}
                                             </Draggable>
@@ -417,7 +420,7 @@ function App() {
                                 )}
                             </Droppable>
                         </Grid>,
-                        <Grid xs={2} > {/*buttons, name, number*/}
+                        <Grid xs={3} > {/*buttons, name, number*/}
                             <Stack
                                 direction="row"
                                 justifyContent="space-between"
@@ -478,24 +481,34 @@ function App() {
                                     }}>{">"}</Button>
                             </Stack>
                         </Grid>,
-                        <Grid xs={5}> {/*people who voted for*/}
-                            <Stack
-                                direction="row"
-                                justifyContent="flex-start"
-                                alignItems="baseline"
-                                spacing={2}
-                                useFlexGap={true}
-                                flexWrap="wrap">
-                                {option.supporters.map(supporter =>
-                                    <Chip label={state.players.get(supporter.voterId) ?? supporter.voterId} sx={{ width: 150 }} />
+                        <Grid xs={4.5}> {/*people who voted for*/}
+                            <Droppable droppableId={"+" + option.name} direction="horizontal">
+                                {(provided, snapshot) => (
+                                    <Stack
+                                        sx={{ height:"100%" }}
+                                        direction="row"
+                                        justifyContent="flex-start"
+                                        alignItems="baseline"
+                                        spacing={2}
+                                        useFlexGap={true}
+                                        flexWrap="wrap"
+                                        ref={provided.innerRef}
+                                        {...provided.droppableProps}>
+                                        {option.supporters.map((supporter, index) =>
+                                            <Draggable draggableId={supporter.voteId} index={index}>
+                                                {(provided, snapshot) => (
+                                                    <Chip label={state.players.get(supporter.voterId) ?? supporter.voterId} sx={{ width: 150 }} ref={provided.innerRef}
+                                                        {...provided.draggableProps}{...provided.dragHandleProps} />
+                                                )}
+                                            </Draggable>
+                                        )}
+                                    </Stack>
                                 )}
-                            </Stack>
-                        </Grid>,
-                        <Grid xs={12} sx={{ backgroundColor: "black", height: "1px" }}>
+                            </Droppable>
                         </Grid>,
                         <Grid xs={Math.min(6, 6 + 6 * (option.support / maxSupport()))} sx={{ height: "10px", transition: "width 1s linear" }}>
                         </Grid>,
-                        <Grid xs={Math.min(6, 6 * (-option.support / maxSupport()))} sx={{ backgroundColor: "lightgreen", height: "10px", transition: "width 1s linear" }}>
+                        <Grid xs={Math.min(6, 6 * (-option.support / maxSupport()))} sx={{ backgroundColor: "red", height: "10px", transition: "width 1s linear" }}>
                         </Grid>,
                         <Grid xs={Math.min(6, 6 * (option.support / maxSupport()))} sx={{ backgroundColor: "lightgreen", height: "10px", transition: "width 1s linear" }}>
                         </Grid>,

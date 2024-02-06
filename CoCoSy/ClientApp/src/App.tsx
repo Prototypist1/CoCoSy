@@ -1,4 +1,4 @@
-import { Box, Button, Chip, Stack, TextField } from '@mui/material';
+import { Box, Button, Chip, Input, Stack, TextField } from '@mui/material';
 import Typography from '@mui/material/Typography';
 import React, { Reducer, useEffect, useMemo, useReducer } from 'react';
 import * as signalR from "@microsoft/signalr";
@@ -7,6 +7,25 @@ import Grid from '@mui/material/Unstable_Grid2';
 import { DragDropContext, Droppable, Draggable, ResponderProvided, DropResult } from "react-beautiful-dnd";
 
 const voteLimit = 3;
+
+//const shadow = "72,87,101";
+//const glow = "255,255,255";
+//const topGradient = "255,255,255";
+//const midGradient = "216,235,249";
+//const botGradient = "144,175,202";
+
+//const glow = "246, 212, 200";
+//const topGradient = "211, 110, 56";
+//const midGradient = "125, 148, 156";
+//const botGradient = "15, 118, 123";
+//const shadow = "1, 5, 6";
+
+const glow = "238,254,255";
+const topGradient = "209,225,227";
+const midGradient = "196,201,219";
+const botGradient = "199,157,195";
+const shadow = "29,2,15";
+
 
 type Vote =
     {
@@ -388,8 +407,8 @@ function App() {
             justifyContent="flex-start"
             alignItems="center"
             spacing={2}
-            sx={{ width: 1 }}>
-            <Typography variant="h1" /*component="h2"*/>
+            sx={{ width: 1, background: `linear-gradient( 179.7deg, rgb(${topGradient},1) 0%, rgb(${midGradient},1) 50%, rgb(${botGradient},1) 100% )` }}>
+            <Typography variant="h1" /*component="h2"*/ sx={{ backgroundColor: `rgb(${shadow},0.7)`, color: "transparent", textShadow: `0px 2px 3px rgb(${glow},0.5)`, backgroundClip: "text" }}>
                 CoCoSy
             </Typography>
             <DragDropContext onDragEnd={onDragEnd}>
@@ -412,8 +431,9 @@ function App() {
                                         {option.againsts.map((against, index) =>
                                             <Draggable draggableId={against.voteId} index={index} isDragDisabled={voterId !== against.voterId} >
                                                 {(provided, snapshot) => (
-                                                    <Chip label={(state.players.get(against.voterId) ?? against.voterId)} sx={{ width: 150, userSelect: "none", fontSize: 18, padding: 2.5 }} ref={provided.innerRef}
-                                                        {...provided.draggableProps}{...provided.dragHandleProps} />
+                                                    <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
+                                                        <div style={{ fontFamily: "Roboto,Helvetica,Arial,sans-serif", maxWidth: 300, overflowWrap: 'break-word', userSelect: "none", fontSize: 18, padding: 10, backgroundColor: `rgb(${glow},0.4)`, borderRadius: 15, boxShadow: `inset 1px 1px 4px rgb(${glow},0.5), 0px 2px 7px rgb(${shadow},0.3), 0px 1px 2px rgb(${shadow},0.5)` }}> {state.players.get(against.voterId) ?? against.voterId} </div>
+                                                    </div>
                                                 )}
                                             </Draggable>
                                         )}
@@ -421,7 +441,7 @@ function App() {
                                 )}
                             </Droppable>
                         </Grid>,
-                        <Grid xs={3} sx={{ backgroundColor: "lightgray", borderRadius:5, padding: 1 }}> {/*buttons, name, number*/}
+                        <Grid xs={3} sx={{ backgroundColor: `rgb(${glow},0.2)`, borderRadius: 5, boxShadow: `0px 2px 3px rgb(${shadow},0.5)`, marginBottom: 1, padding: 1 }}> {/*buttons, name, number*/}
                             <Stack
                                 direction="row"
                                 justifyContent="space-between"
@@ -486,7 +506,7 @@ function App() {
                             <Droppable droppableId={"+" + option.name} direction="horizontal">
                                 {(provided, snapshot) => (
                                     <Stack
-                                        sx={{ height: "100%" }}
+                                        sx={{ height: "100%", paddingBottom: 2}}
                                         padding={1}
                                         direction="row"
                                         justifyContent="flex-start"
@@ -499,8 +519,9 @@ function App() {
                                         {option.supporters.map((supporter, index) =>
                                             <Draggable draggableId={supporter.voteId} index={index} isDragDisabled={voterId !== supporter.voterId} >
                                                 {(provided, snapshot) => (
-                                                    <Chip label={state.players.get(supporter.voterId) ?? supporter.voterId} sx={{ width: 150, userSelect: "none", fontSize:18, padding:2.5  }} ref={provided.innerRef}
-                                                        {...provided.draggableProps}{...provided.dragHandleProps} />
+                                                    <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
+                                                        <div style={{ fontFamily: "Roboto,Helvetica,Arial,sans-serif", maxWidth: 300, overflowWrap: 'break-word', userSelect: "none", fontSize: 18, padding: 10, backgroundColor: `rgb(${glow},0.4)`, borderRadius: 15, boxShadow: `inset 1px 1px 4px rgb(${glow},0.5), 0px 2px 7px rgb(${shadow},0.3), 0px 1px 2px rgb(${shadow},0.5)` }}> {state.players.get(supporter.voterId) ?? supporter.voterId} </div>
+                                                    </div>
                                                 )}
                                             </Draggable>
                                         )}
@@ -509,10 +530,10 @@ function App() {
                             </Droppable>
                         </Grid>,
                         <Grid xs={Math.min(6, 6 + 6 * (option.support / maxSupport()))} sx={{ transition: "width 1s linear" }} paddingY={0.5}>
-                        </Grid>,
-                        <Grid xs={Math.min(6, 6 * (-option.support / maxSupport()))} sx={{ backgroundColor: "red", transition: "width 1s linear" }} paddingY={0.5}>
-                        </Grid>,
-                        <Grid xs={Math.min(6, 6 * (option.support / maxSupport()))} sx={{ backgroundColor: "lightgreen", transition: "width 1s linear" }} paddingY={0.5}>
+                        </Grid>, /*against progress bar*/
+                        <Grid xs={Math.min(6, 6 * (-option.support / maxSupport()))} sx={{ backgroundColor: `rgb(${glow})`, transition: "width 1s linear", boxShadow: `inset 0px -1px 3px rgb(${shadow},1), 0px 0px 6px rgb(${glow},0.6)`, borderRadius: 5 }} paddingY={0.5}>
+                        </Grid>, /*for progress bar*/
+                        <Grid xs={Math.min(6, 6 * (option.support / maxSupport()))} sx={{ backgroundColor: `rgb(${glow})`, transition: "width 1s linear", boxShadow: `inset 0px -1px 3px rgb(${shadow},1), 0px 0px 6px rgb(${glow},0.6)`, borderRadius: 5 }} paddingY={0.5}>
                         </Grid>,
                         <Grid xs={Math.min(6, 6 - 6 * (option.support / maxSupport()))} sx={{ transition: "width 1s linear" }} paddingY={0.5}>
                         </Grid>,
@@ -521,9 +542,11 @@ function App() {
                     ]).flatMap(x => x)}
                 </Grid>
             </DragDropContext>
+            <input type="text" style={{ backgroundColor: `rgb(${shadow},0.1)`, border: 0, borderRadius: 5, boxShadow: `inset 0px 1px 3px rgb(${shadow},0.5)`, padding: 10 }}/>
             <TextField
                 value={state.toAdd}
                 onChange={(value) => actions.setToAdd(value.target.value)}
+                
             />
             <Button onClick={() => {
                 if (state.toAdd !== "") {
@@ -548,6 +571,9 @@ function App() {
                 });
             }}>Set Name</Button>
             <Button onClick={() => actions.clear()}>Clear</Button>
+
+            <div style={{padding: 10, borderRadius: 5, boxShadow: `inset 1px 1px 4px rgb(${glow},0.5), 0px 2px 7px rgb(${shadow},0.3), 0px 1px 2px rgb(${shadow},0.5)` }} > hello world
+            </div>
         </Stack>
     );
 }

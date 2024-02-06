@@ -368,7 +368,7 @@ function App() {
     const outOfVotes = currentVotes >= voteLimit;
 
     function maxSupport() {
-        let maxFound = 10000;
+        let maxFound = 100000;
         for (let option of state.options) {
             if (Math.abs(option.support) > maxFound) {
                 maxFound = Math.abs(option.support)

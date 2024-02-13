@@ -20,11 +20,10 @@ const voteLimit = 3;
 //const botGradient = "15, 118, 123";
 //const shadow = "1, 5, 6";
 
-const glow = "238,254,255";
-const topGradient = "209,225,227";
-const midGradient = "196,201,219";
-const botGradient = "199,157,195";
-const shadow = "29,2,15";
+const glow = "255, 255, 20";
+const topGradient = "247, 235, 50";
+const botGradient = "227, 133, 17";
+const shadow = "141,0,0";
 
 
 type Vote =
@@ -407,8 +406,8 @@ function App() {
             justifyContent="flex-start"
             alignItems="center"
             spacing={2}
-            sx={{ width: 1, background: `linear-gradient( 179.7deg, rgb(${topGradient},1) 0%, rgb(${midGradient},1) 50%, rgb(${botGradient},1) 100% )` }}>
-            <Typography variant="h1" /*component="h2"*/ sx={{ backgroundColor: `rgb(${shadow},0.7)`, color: "transparent", textShadow: `0px 2px 3px rgb(${glow},0.5)`, backgroundClip: "text" }}>
+            sx={{ width: 1, background: `linear-gradient( 179.7deg, rgb(${topGradient},1) 0%, rgb(${botGradient},1) 100% )` }}>
+            <Typography variant="h1" /*component="h2"*/ sx={{ backgroundColor: `rgb(${shadow},0.8)`, color: "transparent", textShadow: `0px 2px 3px rgb(${glow},0.5)`, backgroundClip: "text" }}>
                 CoCoSy
             </Typography>
             <DragDropContext onDragEnd={onDragEnd}>
@@ -531,9 +530,9 @@ function App() {
                         </Grid>,
                         <Grid xs={Math.min(6, 6 + 6 * (option.support / maxSupport()))} sx={{ transition: "width 1s linear" }} paddingY={0.5}>
                         </Grid>, /*against progress bar*/
-                        <Grid xs={Math.min(6, 6 * (-option.support / maxSupport()))} sx={{ backgroundColor: `rgb(${glow})`, transition: "width 1s linear", boxShadow: `inset 0px -1px 3px rgb(${shadow},1), 0px 0px 6px rgb(${glow},0.6)`, borderRadius: 5 }} paddingY={0.5}>
+                        <Grid xs={Math.min(6, 6 * (-option.support / maxSupport()))} sx={{ backgroundColor: `rgb(${glow}, .8)`, transition: "width 1s linear", boxShadow: `inset 0px -1px 3px rgb(${shadow},1), 0px 0px 6px rgb(${glow},0.2)`, borderRadius: 5 }} paddingY={0.5}>
                         </Grid>, /*for progress bar*/
-                        <Grid xs={Math.min(6, 6 * (option.support / maxSupport()))} sx={{ backgroundColor: `rgb(${glow})`, transition: "width 1s linear", boxShadow: `inset 0px -1px 3px rgb(${shadow},1), 0px 0px 6px rgb(${glow},0.6)`, borderRadius: 5 }} paddingY={0.5}>
+                        <Grid xs={Math.min(6, 6 * (option.support / maxSupport()))} sx={{ backgroundColor: `rgb(${glow}, .8)`, transition: "width 1s linear", boxShadow: `inset 0px -1px 3px rgb(${shadow},1), 0px 0px 6px rgb(${glow},0.2)`, borderRadius: 5 }} paddingY={0.5}>
                         </Grid>,
                         <Grid xs={Math.min(6, 6 - 6 * (option.support / maxSupport()))} sx={{ transition: "width 1s linear" }} paddingY={0.5}>
                         </Grid>,

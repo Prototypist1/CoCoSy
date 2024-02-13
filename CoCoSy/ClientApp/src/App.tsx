@@ -448,6 +448,12 @@ function App() {
                                 spacing={2}>
                                 <Button
                                     disabled={outOfVotes && (CanRetractVote(option.supporters) === undefined)}
+                                    sx={{
+                                        fontFamily: 'font-awesome',
+                                        color: 'rgb(255,255,255)',
+                                        textShadow: `0 1px 5px rgb(${shadow}, .5)`,
+                                        fontSize: '30px'
+                                    }}
                                     onClick={() => {
                                         const retractVote = CanRetractVote(option.supporters);
                                         if (retractVote !== undefined) {
@@ -471,7 +477,7 @@ function App() {
                                                 add: true,
                                             })
                                         }
-                                    }}>{"<"}</Button>
+                                    }}>{"\uf137"}</Button>
                                 <Typography variant="h5" overflow="hidden" textOverflow="ellipsis" sx={{overflowWrap:"break-word"}} textAlign="center"> {option.name} </Typography> {/* <Typography variant="h6"> {(option.support / 1000).toFixed()}</Typography> */}
                                 <Button
                                     disabled={outOfVotes && !CanRetractVote(option.againsts)}

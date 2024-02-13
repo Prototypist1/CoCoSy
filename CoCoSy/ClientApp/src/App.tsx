@@ -20,11 +20,12 @@ const voteLimit = 3;
 //const botGradient = "15, 118, 123";
 //const shadow = "1, 5, 6";
 
-const glow = "238,254,255";
-const topGradient = "209,225,227";
-const midGradient = "196,201,219";
-const botGradient = "199,157,195";
-const shadow = "29,2,15";
+
+const glow = "255, 255, 255";
+const topGradient = "157, 134, 216";
+const midGradient = "128, 245, 191";
+const botGradient = "157, 134, 216";
+const shadow = "0, 0, 0";
 
 
 type Vote =

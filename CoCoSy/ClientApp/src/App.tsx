@@ -1,6 +1,6 @@
 import { Box, Button, Chip, Input, Stack, TextField } from '@mui/material';
 import Typography from '@mui/material/Typography';
-import React, { Reducer, useEffect, useMemo, useReducer } from 'react';
+import React, { Reducer, useEffect, useMemo, useReducer, CSSProperties } from 'react';
 import * as signalR from "@microsoft/signalr";
 import { v4 } from 'uuid';
 import Grid from '@mui/material/Unstable_Grid2';
@@ -8,22 +8,31 @@ import { DragDropContext, Droppable, Draggable, ResponderProvided, DropResult } 
 
 const voteLimit = 3;
 
-//const shadow = "72,87,101";
-//const glow = "255,255,255";
-//const topGradient = "255,255,255";
-//const midGradient = "216,235,249";
-//const botGradient = "144,175,202";
+const glow = "243, 243, 244";
+const topGradient = "154, 178, 255";
+const botGradient = "164, 96, 210";
+const shadow = "52, 49, 45";
+const backdropFilter = "hue-rotate(-8deg) saturate(95%) brightness(110%)";
+const buttonStyle = {
+    fontFamily: 'font-awesome',
+    color: 'rgb(255,255,255)',
+    textShadow: `0 1px 5px rgb(${shadow}, .5)`,
+    fontSize: '30px'
+}
 
-//const glow = "246, 212, 200";
-//const topGradient = "211, 110, 56";
-//const midGradient = "125, 148, 156";
-//const botGradient = "15, 118, 123";
-//const shadow = "1, 5, 6";
+const chipStyle: CSSProperties = {
+    fontFamily: "Roboto,Helvetica,Arial,sans-serif",
+    maxWidth: 300,
+    overflowWrap: "break-word",
+    userSelect: "none",
+    fontSize: 18,
+    padding: 10,
+    //backgroundColor: `rgb(${glow},0.4)`,
+    borderRadius: 15,
+    boxShadow: `inset 1px 1px 4px rgb(${glow},0.5), 0px 2px 7px rgb(${shadow},0.3), 0px 1px 2px rgb(${shadow},0.5)`,
+    backdropFilter: backdropFilter
+};
 
-const glow = "255, 255, 20";
-const topGradient = "247, 235, 50";
-const botGradient = "227, 133, 17";
-const shadow = "141,0,0";
 
 
 type Vote =
@@ -431,7 +440,7 @@ function App() {
                                             <Draggable draggableId={against.voteId} index={index} isDragDisabled={voterId !== against.voterId} >
                                                 {(provided, snapshot) => (
                                                     <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
-                                                        <div style={{ fontFamily: "Roboto,Helvetica,Arial,sans-serif", maxWidth: 300, overflowWrap: 'break-word', userSelect: "none", fontSize: 18, padding: 10, backgroundColor: `rgb(${glow},0.4)`, borderRadius: 15, boxShadow: `inset 1px 1px 4px rgb(${glow},0.5), 0px 2px 7px rgb(${shadow},0.3), 0px 1px 2px rgb(${shadow},0.5)` }}> {state.players.get(against.voterId) ?? against.voterId} </div>
+                                                        <div style={chipStyle}> {state.players.get(against.voterId) ?? against.voterId} </div>
                                                     </div>
                                                 )}
                                             </Draggable>
@@ -448,12 +457,7 @@ function App() {
                                 spacing={2}>
                                 <Button
                                     disabled={outOfVotes && (CanRetractVote(option.supporters) === undefined)}
-                                    sx={{
-                                        fontFamily: 'font-awesome',
-                                        color: 'rgb(255,255,255)',
-                                        textShadow: `0 1px 5px rgb(${shadow}, .5)`,
-                                        fontSize: '30px'
-                                    }}
+                                    sx={buttonStyle}
                                     onClick={() => {
                                         const retractVote = CanRetractVote(option.supporters);
                                         if (retractVote !== undefined) {
@@ -481,6 +485,7 @@ function App() {
                                 <Typography variant="h5" overflow="hidden" textOverflow="ellipsis" sx={{overflowWrap:"break-word"}} textAlign="center"> {option.name} </Typography> {/* <Typography variant="h6"> {(option.support / 1000).toFixed()}</Typography> */}
                                 <Button
                                     disabled={outOfVotes && !CanRetractVote(option.againsts)}
+                                    sx={buttonStyle}
                                     onClick={() => {
                                         const retractVote = CanRetractVote(option.againsts);
                                         if (retractVote !== undefined) {
@@ -504,7 +509,7 @@ function App() {
                                                 add: true,
                                             })
                                         }
-                                    }}>{">"}</Button>
+                                    }}>{"\uf138"}</Button>
                             </Stack>
                         </Grid>,
                         <Grid xs={4.5}> {/*people who voted for*/}
@@ -525,7 +530,7 @@ function App() {
                                             <Draggable draggableId={supporter.voteId} index={index} isDragDisabled={voterId !== supporter.voterId} >
                                                 {(provided, snapshot) => (
                                                     <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
-                                                        <div style={{ fontFamily: "Roboto,Helvetica,Arial,sans-serif", maxWidth: 300, overflowWrap: 'break-word', userSelect: "none", fontSize: 18, padding: 10, backgroundColor: `rgb(${glow},0.4)`, borderRadius: 15, boxShadow: `inset 1px 1px 4px rgb(${glow},0.5), 0px 2px 7px rgb(${shadow},0.3), 0px 1px 2px rgb(${shadow},0.5)` }}> {state.players.get(supporter.voterId) ?? supporter.voterId} </div>
+                                                        <div style={chipStyle}> {state.players.get(supporter.voterId) ?? supporter.voterId} </div>
                                                     </div>
                                                 )}
                                             </Draggable>
@@ -536,9 +541,9 @@ function App() {
                         </Grid>,
                         <Grid xs={Math.min(6, 6 + 6 * (option.support / maxSupport()))} sx={{ transition: "width 1s linear" }} paddingY={0.5}>
                         </Grid>, /*against progress bar*/
-                        <Grid xs={Math.min(6, 6 * (-option.support / maxSupport()))} sx={{ backgroundColor: `rgb(${glow}, .8)`, transition: "width 1s linear", boxShadow: `inset 0px -1px 3px rgb(${shadow},1), 0px 0px 6px rgb(${glow},0.2)`, borderRadius: 5 }} paddingY={0.5}>
+                        <Grid xs={Math.min(6, 6 * (-option.support / maxSupport()))} sx={{ backdropFilter: backdropFilter, transition: "width 1s linear", borderRadius: 5 }} paddingY={0.5}>
                         </Grid>, /*for progress bar*/
-                        <Grid xs={Math.min(6, 6 * (option.support / maxSupport()))} sx={{ backgroundColor: `rgb(${glow}, .8)`, transition: "width 1s linear", boxShadow: `inset 0px -1px 3px rgb(${shadow},1), 0px 0px 6px rgb(${glow},0.2)`, borderRadius: 5 }} paddingY={0.5}>
+                        <Grid xs={Math.min(6, 6 * (option.support / maxSupport()))} sx={{ backdropFilter: backdropFilter, transition: "width 1s linear", boxShadow: `inset 0px -1px 3px rgb(${shadow},1), 0px 0px 6px rgb(${glow},0.2)`, borderRadius: 5 }} paddingY={0.5}>
                         </Grid>,
                         <Grid xs={Math.min(6, 6 - 6 * (option.support / maxSupport()))} sx={{ transition: "width 1s linear" }} paddingY={0.5}>
                         </Grid>,
@@ -578,6 +583,8 @@ function App() {
             <Button onClick={() => actions.clear()}>Clear</Button>
 
             <div style={{padding: 10, borderRadius: 5, boxShadow: `inset 1px 1px 4px rgb(${glow},0.5), 0px 2px 7px rgb(${shadow},0.3), 0px 1px 2px rgb(${shadow},0.5)` }} > hello world
+            </div>
+            <div style={{ width: 100, height: 100, backgroundColor: botGradient, backdropFilter: backdropFilter }}> 
             </div>
         </Stack>
     );

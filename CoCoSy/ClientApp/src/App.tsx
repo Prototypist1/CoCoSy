@@ -8,11 +8,12 @@ import { DragDropContext, Droppable, Draggable, ResponderProvided, DropResult } 
 
 const voteLimit = 3;
 
-const glow = "243, 243, 244";
-const topGradient = "154, 178, 255";
-const botGradient = "164, 96, 210";
-const shadow = "52, 49, 45";
-const backdropFilter = "hue-rotate(-8deg) saturate(95%) brightness(110%)";
+const glow = "255, 255, 255";
+const topGradient = "195,212,214";
+const botGradient = "195,207,214";
+const shadow = "0, 0, 0";
+const backdropFilter = "hue-rotate(-2deg) saturate(130%) brightness(105%)";
+
 const buttonStyle = {
     fontFamily: 'font-awesome',
     color: 'rgb(255,255,255)',
@@ -20,17 +21,26 @@ const buttonStyle = {
     fontSize: '30px'
 }
 
-const chipStyle: CSSProperties = {
+const baseStyle: CSSProperties = {
     fontFamily: "Roboto,Helvetica,Arial,sans-serif",
-    maxWidth: 300,
     overflowWrap: "break-word",
     userSelect: "none",
-    fontSize: 18,
-    padding: 10,
-    //backgroundColor: `rgb(${glow},0.4)`,
-    borderRadius: 15,
-    boxShadow: `inset 1px 1px 4px rgb(${glow},0.5), 0px 2px 7px rgb(${shadow},0.3), 0px 1px 2px rgb(${shadow},0.5)`,
+    padding: "8px",
+    color: `${shadow}`,
+    textShadow: `0px 1px 5px rbh(${glow}, 0.5)`,
+    borderRadius: "15px",
+    boxShadow: `inset 0px 1px 4px rgb(${glow},0.5), 0px 2px 7px rgb(${shadow},0.3), 0px 1px 2px rgb(${shadow},0.5)`,
     backdropFilter: backdropFilter
+};
+
+const optionSyle: CSSProperties = {
+    fontSize: 18,
+    ...baseStyle
+};
+
+const chipStyle: CSSProperties = {
+    maxWidth: 300,
+    ...optionSyle
 };
 
 
@@ -449,7 +459,7 @@ function App() {
                                 )}
                             </Droppable>
                         </Grid>,
-                        <Grid xs={3} sx={{ backgroundColor: `rgb(${glow},0.2)`, borderRadius: 5, boxShadow: `0px 2px 3px rgb(${shadow},0.5)`, marginBottom: 1, padding: 1 }}> {/*buttons, name, number*/}
+                        <Grid xs={3} sx={optionSyle}> {/*buttons, name, number*/}
                             <Stack
                                 direction="row"
                                 justifyContent="space-between"

@@ -9,10 +9,10 @@ import { DragDropContext, Droppable, Draggable, ResponderProvided, DropResult } 
 const voteLimit = 3;
 
 const glow = "255, 255, 255";
-const topGradient = "195,212,214";
-const botGradient = "195,207,214";
+const topGradient = "238,220,206";
+const botGradient = "126,157,143";
 const shadow = "0, 0, 0";
-const backdropFilter = "hue-rotate(-2deg) saturate(130%) brightness(105%)";
+const backdropFilter = "hue-rotate(-30deg) saturate(105%) brightness(110%)";
 
 const buttonStyle = {
     fontFamily: 'font-awesome',
@@ -26,7 +26,6 @@ const baseStyle: CSSProperties = {
     overflowWrap: "break-word",
     userSelect: "none",
     padding: "8px",
-    color: `${shadow}`,
     textShadow: `0px 1px 5px rbh(${glow}, 0.5)`,
     borderRadius: "15px",
     boxShadow: `inset 0px 1px 4px rgb(${glow},0.5), 0px 2px 7px rgb(${shadow},0.3), 0px 1px 2px rgb(${shadow},0.5)`,
@@ -34,16 +33,14 @@ const baseStyle: CSSProperties = {
 };
 
 const optionSyle: CSSProperties = {
+    ...baseStyle,
     fontSize: 18,
-    ...baseStyle
 };
 
 const chipStyle: CSSProperties = {
+    ...optionSyle,
     maxWidth: 300,
-    ...optionSyle
 };
-
-
 
 type Vote =
     {

@@ -4,16 +4,17 @@ import React, { Reducer, useEffect, useMemo, useReducer, CSSProperties } from 'r
 import * as signalR from "@microsoft/signalr";
 import { v4 } from 'uuid';
 import Grid from '@mui/material/Unstable_Grid2';
-import { DragDropContext, Droppable, Draggable, ResponderProvided, DropResult } from "react-beautiful-dnd";
-import { DndContext } from '@dnd-kit/core';
+import { DndContext, DragEndEvent } from '@dnd-kit/core';
+import { Draggable } from './Draggable';
+import { Droppable } from './Droppable';
 
 const voteLimit = 3;
 
 const glow = "255, 255, 255";
-const topGradient = "238,220,206";
-const botGradient = "126,157,143";
+const topGradient = "174, 206, 214";
+const botGradient = "223, 209, 185";
 const shadow = "0, 0, 0";
-const backdropFilter = "hue-rotate(-30deg) saturate(105%) brightness(110%)";
+const backdropFilter = "hue-rotate(-30deg) saturate(105%) brightness(110%) blur(10px)";
 
 const buttonStyle = {
     fontFamily: 'font-awesome',
@@ -384,6 +385,7 @@ function App() {
     const outOfVotes = currentVotes >= voteLimit;
 
     function maxSupport() {
+        console.log("log please");
         let maxFound = 100000;
         for (let option of state.options) {
             if (Math.abs(option.support) > maxFound) {
@@ -392,30 +394,35 @@ function App() {
         }
         return maxFound
     }
-    function onDragEnd(result: DropResult, provided: ResponderProvided) {
-        if (!result.destination) {
+    function onDragEnd(event: DragEndEvent) {
+        console.log("event", event)
+        if (!event.over) {
             return;
         }
-        const sourceSupport = result.source.droppableId.startsWith("+");
+        const x = (event.active.id as string).indexOf("|");
+        const voteId = (event.active.id as string).substring(0,x);
+        const source = (event.active.id as string).substring(x+1);
+        const sourceSupport = source.startsWith("+");
         actions.vote({
             at: Date.now(),
-            optionName: result.source.droppableId.substring(1),
+            optionName: source.substring(1),
             support: sourceSupport,
             voterId: voterId,
             messageId: v4(),
-            voteId: result.draggableId,
+            voteId: voteId,
             add: false,
         })
-        const destinationSupport = result.destination.droppableId.startsWith("+");
+        const destinationSupport = (event.over.id as string).startsWith("+");
         actions.vote({
             at: Date.now(),
-            optionName: result.destination.droppableId.substring(1),
+            optionName: (event.over.id as string).substring(1),
             support: destinationSupport,
             voterId: voterId,
             messageId: v4(),
-            voteId: result.draggableId,
+            voteId: voteId,
             add: true,
         })
+        console.log("looking for |",voteId,source)
     }
     return (
         <Stack
@@ -427,12 +434,11 @@ function App() {
             <Typography variant="h1" /*component="h2"*/ sx={{ backgroundColor: `rgb(${shadow},0.8)`, color: "transparent", textShadow: `0px 2px 3px rgb(${glow},0.5)`, backgroundClip: "text" }}>
                 CoCoSy
             </Typography>
-            <DragDropContext onDragEnd={onDragEnd}>
+            <DndContext onDragEnd={onDragEnd}>
                 <Grid container columnSpacing={0} sx={{ width: 1 }}>
                     {state.options.map(option => [
                         <Grid xs={4.5}> {/*people who voted against */}
-                            <Droppable droppableId={"-" + option.name} direction="horizontal" >
-                                {(provided, snapshot) => (
+                            <Droppable id={"-" + option.name} >
                                     <Stack
                                         sx={{ height: "100%" }}
                                         padding={1}
@@ -441,20 +447,13 @@ function App() {
                                         alignItems="stretch"
                                         spacing={1}
                                         useFlexGap={true}
-                                        flexWrap="wrap"
-                                        ref={provided.innerRef}
-                                        {...provided.droppableProps}>
-                                        {option.againsts.map((against, index) =>
-                                            <Draggable draggableId={against.voteId} index={index} isDragDisabled={voterId !== against.voterId} >
-                                                {(provided, snapshot) => (
-                                                    <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
-                                                        <div style={chipStyle}> {state.players.get(against.voterId) ?? against.voterId} </div>
-                                                    </div>
-                                                )}
-                                            </Draggable>
-                                        )}
+                                        flexWrap="wrap" >
+                                    {option.againsts.map((against, index) =>
+                                        <Draggable id={against.voteId + "|-" + option.name} disabled={voterId !== against.voterId}>
+                                            <div style={chipStyle}> {state.players.get(against.voterId) ?? against.voterId} </div>
+                                        </Draggable>
+                                    )}
                                     </Stack>
-                                )}
                             </Droppable>
                         </Grid>,
                         <Grid xs={3} sx={optionSyle}> {/*buttons, name, number*/}
@@ -521,30 +520,22 @@ function App() {
                             </Stack>
                         </Grid>,
                         <Grid xs={4.5}> {/*people who voted for*/}
-                            <Droppable droppableId={"+" + option.name} direction="horizontal">
-                                {(provided, snapshot) => (
-                                    <Stack
-                                        sx={{ height: "100%", paddingBottom: 2}}
-                                        padding={1}
-                                        direction="row"
-                                        justifyContent="flex-start"
-                                        alignItems="baseline"
-                                        spacing={1}
-                                        useFlexGap={true}
-                                        flexWrap="wrap"
-                                        ref={provided.innerRef}
-                                        {...provided.droppableProps}>
-                                        {option.supporters.map((supporter, index) =>
-                                            <Draggable draggableId={supporter.voteId} index={index} isDragDisabled={voterId !== supporter.voterId} >
-                                                {(provided, snapshot) => (
-                                                    <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
-                                                        <div style={chipStyle}> {state.players.get(supporter.voterId) ?? supporter.voterId} </div>
-                                                    </div>
-                                                )}
-                                            </Draggable>
-                                        )}
-                                    </Stack>
-                                )}
+                            <Droppable id={"+" + option.name} >
+                                <Stack
+                                    sx={{ height: "100%", paddingBottom: 2}}
+                                    padding={1}
+                                    direction="row"
+                                    justifyContent="flex-start"
+                                    alignItems="baseline"
+                                    spacing={1}
+                                    useFlexGap={true}
+                                    flexWrap="wrap" >
+                                    {option.supporters.map((supporter, index) =>
+                                        <Draggable id={supporter.voteId + "|+" + option.name} disabled={voterId !== supporter.voterId } >
+                                            <div style={chipStyle}> {state.players.get(supporter.voterId) ?? supporter.voterId} </div>
+                                        </Draggable>
+                                    )}
+                                </Stack>
                             </Droppable>
                         </Grid>,
                         <Grid xs={Math.min(6, 6 + 6 * (option.support / maxSupport()))} sx={{ transition: "width 1s linear" }} paddingY={0.5}>
@@ -559,7 +550,7 @@ function App() {
                         </Grid>,
                     ]).flatMap(x => x)}
                 </Grid>
-            </DragDropContext>
+            </DndContext>
             <input type="text" style={{ backgroundColor: `rgb(${shadow},0.1)`, border: 0, borderRadius: 5, boxShadow: `inset 0px 1px 3px rgb(${shadow},0.5)`, padding: 10 }}/>
             <TextField
                 value={state.toAdd}

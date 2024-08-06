@@ -5,6 +5,7 @@ import * as signalR from "@microsoft/signalr";
 import { v4 } from 'uuid';
 import Grid from '@mui/material/Unstable_Grid2';
 import { DragDropContext, Droppable, Draggable, ResponderProvided, DropResult } from "react-beautiful-dnd";
+import { DndContext } from '@dnd-kit/core';
 
 const voteLimit = 3;
 

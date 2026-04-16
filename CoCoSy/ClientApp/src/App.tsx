@@ -11,8 +11,8 @@ import { Droppable } from './Droppable';
 const voteLimit = 3;
 
 const glow = "255, 255, 255";
-const topGradient = "174, 206, 214";
-const botGradient = "223, 209, 185";
+const topGradient = "238, 220, 206";
+const botGradient = "126, 157, 143";
 const shadow = "0, 0, 0";
 const backdropFilter = "hue-rotate(-30deg) saturate(105%) brightness(110%) blur(10px)";
 

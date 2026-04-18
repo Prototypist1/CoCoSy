@@ -4,11 +4,7 @@ import React, { Reducer, useEffect, useMemo, useReducer, CSSProperties } from 'r
 import * as signalR from "@microsoft/signalr";
 import { v4 } from 'uuid';
 import Grid from '@mui/material/Unstable_Grid2';
-import { DndContext, DragEndEvent } from '@dnd-kit/core';
-import { Draggable } from './Draggable';
-import { Droppable } from './Droppable';
 
-const voteLimit = 3;
 
 const glow = "255, 255, 255";
 const topGradient = "238, 220, 206";
@@ -42,12 +38,23 @@ const optionSyle: CSSProperties = {
 const chipStyle: CSSProperties = {
     ...optionSyle,
     maxWidth: 300,
+    display: 'flex',
+    alignItems: 'center',
+    minWidth: 0,
+};
+
+const chipTextStyle: CSSProperties = {
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    minWidth: 0,
+    flex: 1,
 };
 
 type Vote =
     {
         voterId: string,
-        voteId: string
+        voteId: string,
     }
 
 type VotesSubState = {
@@ -84,7 +91,6 @@ const testState: State = {
 }
 
 type VoteAction = {
-
     voterId: string,
     optionName: string,
     at: number,
@@ -155,38 +161,52 @@ function buildState(votesAdded: VoteAction[], optionsAdded: AddOptionAction[]): 
         });
     }
 
-    const activeByPlayer = new Map<string, number>();
     for (let voteAction of votesAdded.sort((x, y) => x.at - y.at)) {
 
         const target = optionMap.get(voteAction.optionName)!;
         const vote = { voterId: voteAction.voterId, voteId: voteAction.voteId };
-        var currentCount = activeByPlayer.get(vote.voterId) ?? 0;
         if (voteAction.support) {
             if (voteAction.add) {
-                if (currentCount < voteLimit) {
-                    target.supporters.push(vote);
-                    activeByPlayer.set(vote.voterId, currentCount + 1);
-                    target.support += now - voteAction.at;
-                }
+                target.supporters.push(vote);
             } else {
-                if (TryRemove(target.supporters, vote)) {
-                    activeByPlayer.set(vote.voterId, currentCount - 1);
-                    target.support -= now - voteAction.at;
+                if (!TryRemove(target.supporters, vote)) {
+                    console.log(`couldn't remove vote id ${vote.voteId}`)
                 }
             }
         } else {
             if (voteAction.add) {
-                if (currentCount < voteLimit) {
-                    target.againsts.push(vote);
-                    activeByPlayer.set(vote.voterId, currentCount + 1);
-                    target.support -= now - voteAction.at;
-                }
+                target.againsts.push(vote);
             } else {
-                if (TryRemove(target.againsts, vote)) {
-                    activeByPlayer.set(vote.voterId, currentCount - 1);
-                    target.support += now - voteAction.at;
+                if (!TryRemove(target.againsts, vote)) {
+                    console.log(`couldn't remove vote id ${vote.voteId}`)
                 }
             }
+        }
+    }
+
+    const votesByPlayer = new Map<string, number>();
+    for (let yolo of Array.from(optionMap.values())) {
+        for (let vote of yolo.supporters) {
+            var currentCount = votesByPlayer.get(vote.voterId) ?? 0;
+            votesByPlayer.set(vote.voterId, currentCount + 1);
+        }
+        for (let vote of yolo.againsts) {
+            var currentCount = votesByPlayer.get(vote.voterId) ?? 0;
+            votesByPlayer.set(vote.voterId, currentCount + 1);
+        }
+    }
+
+    for (let yolo of Array.from(optionMap.values())) {
+
+        for (let vote of yolo.supporters) {
+            // activeByPlayer.get is not undefined because you can't vote without being active
+            // @ts-expect-error
+            yolo.support += 1.0 / votesByPlayer.get(vote.voterId);
+        }
+        for (let vote of yolo.againsts) {
+            // activeByPlayer.get is not undefined because you can't vote without being active
+            // @ts-expect-error
+            yolo.support -= 1.0 / votesByPlayer.get(vote.voterId);
         }
     }
 
@@ -366,6 +386,14 @@ const useAppState = () => {
 
 const voterId: string = v4();
 
+function consolidate(votes: Vote[]): [string, number][] {
+    const counts = new Map<string, number>();
+    for (const vote of votes) {
+        counts.set(vote.voterId, (counts.get(vote.voterId) ?? 0) + 1);
+    }
+    return Array.from(counts.entries());
+}
+
 function CanRetractVote(otherSideVotes: Vote[]): string | undefined {
     for (let otherSideVote of otherSideVotes) {
         if (voterId === otherSideVote.voterId) {
@@ -375,55 +403,52 @@ function CanRetractVote(otherSideVotes: Vote[]): string | undefined {
     return undefined;
 }
 
+function VoteShareIcon({ slotsHere, totalSlots }: { slotsHere: number, totalSlots: number }) {
+    const size = 14;
+    const cx = size / 2;
+    const cy = size / 2;
+    const r = size / 2 - 0.5;
+
+    const sliceAngle = (2 * Math.PI) / totalSlots;
+
+    const slices = Array.from({ length: slotsHere }, (_, i) => {
+        const startAngle = i * sliceAngle;
+        const endAngle = (i + 1) * sliceAngle;
+        const startX = cx + r * Math.sin(startAngle);
+        const startY = cy - r * Math.cos(startAngle);
+        const endX = cx + r * Math.sin(endAngle);
+        const endY = cy - r * Math.cos(endAngle);
+        const largeArcFlag = (endAngle - startAngle) > Math.PI ? 1 : 0;
+        const opacity = i % 2 === 0 ? 0.7 : 0.45;
+        return <path key={i} d={`M ${cx} ${cy} L ${startX} ${startY} A ${r} ${r} 0 ${largeArcFlag} 1 ${endX} ${endY} Z`} fill="black" opacity={opacity} />;
+    });
+
+    return (
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ verticalAlign: 'middle', marginLeft: 4 }}>
+            <circle cx={cx} cy={cy} r={r} fill="black" opacity={0.15} />
+            {slices}
+        </svg>
+    );
+}
+
 function App() {
     const { state, actions } = useAppState();
 
     // gross, refresh every second
 
-    const currentVotes = state.options.map(x => x.againsts.filter(y => y.voterId === voterId).length + x.supporters.filter(y => y.voterId === voterId).length).reduce((x, y) => x + y, 0);
-
-    const outOfVotes = currentVotes >= voteLimit;
-
-    function maxSupport() {
-        console.log("log please");
-        let maxFound = 100000;
-        for (let option of state.options) {
-            if (Math.abs(option.support) > maxFound) {
-                maxFound = Math.abs(option.support)
-            }
+    const totalSlotsByVoter = new Map<string, number>();
+    for (const option of state.options) {
+        for (const vote of [...option.supporters, ...option.againsts]) {
+            totalSlotsByVoter.set(vote.voterId, (totalSlotsByVoter.get(vote.voterId) ?? 0) + 1);
         }
-        return maxFound
     }
-    function onDragEnd(event: DragEndEvent) {
-        console.log("event", event)
-        if (!event.over) {
-            return;
-        }
-        const x = (event.active.id as string).indexOf("|");
-        const voteId = (event.active.id as string).substring(0,x);
-        const source = (event.active.id as string).substring(x+1);
-        const sourceSupport = source.startsWith("+");
-        actions.vote({
-            at: Date.now(),
-            optionName: source.substring(1),
-            support: sourceSupport,
-            voterId: voterId,
-            messageId: v4(),
-            voteId: voteId,
-            add: false,
-        })
-        const destinationSupport = (event.over.id as string).startsWith("+");
-        actions.vote({
-            at: Date.now(),
-            optionName: (event.over.id as string).substring(1),
-            support: destinationSupport,
-            voterId: voterId,
-            messageId: v4(),
-            voteId: voteId,
-            add: true,
-        })
-        console.log("looking for |",voteId,source)
+
+    const maxSupport = Math.max(...state.options.map(option => Math.abs(option.support)), 0) + 2;
+
+    function barFlex(support: number) {
+        return Math.abs(support) / maxSupport; // 0 to ~1, never quite reaches 1
     }
+
     return (
         <Stack
             direction="column"
@@ -434,128 +459,99 @@ function App() {
             <Typography variant="h1" /*component="h2"*/ sx={{ backgroundColor: `rgb(${shadow},0.8)`, color: "transparent", textShadow: `0px 2px 3px rgb(${glow},0.5)`, backgroundClip: "text" }}>
                 CoCoSy
             </Typography>
-            <DndContext onDragEnd={onDragEnd}>
-                <Grid container columnSpacing={0} sx={{ width: 1 }}>
-                    {state.options.map(option => [
-                        <Grid xs={4.5}> {/*people who voted against */}
-                            <Droppable id={"-" + option.name} >
+            <Grid container columnSpacing={0} sx={{ width: 1 }}>
+                {state.options.map(option => {
+                    const bf = barFlex(option.support);
+                    const bfAgainst = option.support < 0 ? bf : 0;
+                    const bfFor = option.support > 0 ? bf : 0;
+                    const barDivStyle: CSSProperties = {
+                        borderRadius: 10,
+                        margin: 4,
+                        transition: 'flex 0.4s ease',
+                        backdropFilter: backdropFilter,
+                        boxShadow: `inset 0px 1px 4px rgb(${glow},0.3), 0px 1px 4px rgb(${shadow},0.3)`,
+                    };
+                    return [
+                        <Grid key={`opt-${option.name}`} xs={12} sx={{ mt: 2 }}>
+                            <div style={{ display: 'flex', alignItems: 'stretch' }}>
+                                <div style={{ flex: 1 - bfAgainst, transition: 'flex 0.4s ease' }} />
+                                <div style={{ flex: bfAgainst, ...barDivStyle }} />
+                                <div style={{ ...optionSyle, flex: '0 0 420px', width: 420, minWidth: 0, display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+                                    <Button
+                                        sx={{ ...buttonStyle, flex: '0 0 auto' }}
+                                        onClick={() => {
+                                            const retractVote = CanRetractVote(option.supporters);
+                                            if (retractVote !== undefined) {
+                                                actions.vote({
+                                                    at: Date.now(), optionName: option.name, support: true, voterId: voterId, messageId: v4(), voteId: retractVote, add: false
+                                                })
+                                            } else {
+                                                actions.vote({
+                                                    at: Date.now(), optionName: option.name, support: false, voterId: voterId, messageId: v4(), voteId: v4(), add: true
+                                                })
+                                            }
+                                        }}>{"\uf137"}</Button>
+                                    <Typography variant="h5" noWrap sx={{ flex: 1, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis' }}> {option.name} <Typography variant="caption">({(option.support ?? 0).toFixed(2)})</Typography></Typography>
+                                    <Button
+                                        sx={{ ...buttonStyle, flex: '0 0 auto' }}
+                                        onClick={() => {
+                                            const retractVote = CanRetractVote(option.againsts);
+                                            if (retractVote !== undefined) {
+                                                actions.vote({
+                                                    at: Date.now(), optionName: option.name, support: false, voterId: voterId, messageId: v4(), voteId: retractVote, add: false
+                                                })
+                                            } else {
+                                                actions.vote({
+                                                    at: Date.now(), optionName: option.name, support: true, voterId: voterId, messageId: v4(), voteId: v4(), add: true
+                                                })
+                                            }
+                                        }}>{"\uf138"}</Button>
+                                </div>
+                                <div style={{ flex: bfFor, ...barDivStyle }} />
+                                <div style={{ flex: 1 - bfFor, transition: 'flex 0.4s ease' }} />
+                            </div>
+                        </Grid>,
+                        <Grid key={`voters-${option.name}`} xs={12}>
+                            <div style={{ display: 'flex' }}>
+                                <div style={{ flex: 1 }}>
                                     <Stack
-                                        sx={{ height: "100%" }}
                                         padding={1}
                                         direction="row"
                                         justifyContent="flex-end"
-                                        alignItems="stretch"
+                                        alignItems="center"
                                         spacing={1}
                                         useFlexGap={true}
                                         flexWrap="wrap" >
-                                    {option.againsts.map((against, index) =>
-                                        <Draggable id={against.voteId + "|-" + option.name} disabled={voterId !== against.voterId}>
-                                            <div style={chipStyle}> {state.players.get(against.voterId) ?? against.voterId} </div>
-                                        </Draggable>
-                                    )}
+                                        {consolidate(option.againsts).map(([vid, slotsHere]) =>
+                                            <div style={chipStyle}><span style={chipTextStyle}>{state.players.get(vid) ?? vid}</span><span style={{ whiteSpace: 'nowrap', marginLeft: 4, opacity: 0.7, fontSize: '0.75em' }}>{slotsHere}/{totalSlotsByVoter.get(vid) ?? 1}</span><VoteShareIcon slotsHere={slotsHere} totalSlots={totalSlotsByVoter.get(vid) ?? 1} /></div>
+                                        )}
                                     </Stack>
-                            </Droppable>
-                        </Grid>,
-                        <Grid xs={3} sx={optionSyle}> {/*buttons, name, number*/}
-                            <Stack
-                                direction="row"
-                                justifyContent="space-between"
-                                alignItems="baseline"
-                                spacing={2}>
-                                <Button
-                                    disabled={outOfVotes && (CanRetractVote(option.supporters) === undefined)}
-                                    sx={buttonStyle}
-                                    onClick={() => {
-                                        const retractVote = CanRetractVote(option.supporters);
-                                        if (retractVote !== undefined) {
-                                            actions.vote({
-                                                at: Date.now(),
-                                                optionName: option.name,
-                                                support: true,
-                                                voterId: voterId,
-                                                messageId: v4(),
-                                                voteId: retractVote,
-                                                add: false,
-                                            })
-                                        } else {
-                                            actions.vote({
-                                                at: Date.now(),
-                                                optionName: option.name,
-                                                support: false,
-                                                voterId: voterId,
-                                                messageId: v4(),
-                                                voteId: v4(),
-                                                add: true,
-                                            })
-                                        }
-                                    }}>{"\uf137"}</Button>
-                                <Typography variant="h5" overflow="hidden" textOverflow="ellipsis" sx={{overflowWrap:"break-word"}} textAlign="center"> {option.name} </Typography> {/* <Typography variant="h6"> {(option.support / 1000).toFixed()}</Typography> */}
-                                <Button
-                                    disabled={outOfVotes && !CanRetractVote(option.againsts)}
-                                    sx={buttonStyle}
-                                    onClick={() => {
-                                        const retractVote = CanRetractVote(option.againsts);
-                                        if (retractVote !== undefined) {
-                                            actions.vote({
-                                                at: Date.now(),
-                                                optionName: option.name,
-                                                support: false,
-                                                voterId: voterId,
-                                                messageId: v4(),
-                                                voteId: retractVote,
-                                                add: false,
-                                            })
-                                        } else {
-                                            actions.vote({
-                                                at: Date.now(),
-                                                optionName: option.name,
-                                                support: true,
-                                                voterId: voterId,
-                                                messageId: v4(),
-                                                voteId: v4(),
-                                                add: true,
-                                            })
-                                        }
-                                    }}>{"\uf138"}</Button>
-                            </Stack>
-                        </Grid>,
-                        <Grid xs={4.5}> {/*people who voted for*/}
-                            <Droppable id={"+" + option.name} >
-                                <Stack
-                                    sx={{ height: "100%", paddingBottom: 2}}
-                                    padding={1}
-                                    direction="row"
-                                    justifyContent="flex-start"
-                                    alignItems="baseline"
-                                    spacing={1}
-                                    useFlexGap={true}
-                                    flexWrap="wrap" >
-                                    {option.supporters.map((supporter, index) =>
-                                        <Draggable id={supporter.voteId + "|+" + option.name} disabled={voterId !== supporter.voterId } >
-                                            <div style={chipStyle}> {state.players.get(supporter.voterId) ?? supporter.voterId} </div>
-                                        </Draggable>
-                                    )}
-                                </Stack>
-                            </Droppable>
-                        </Grid>,
-                        <Grid xs={Math.min(6, 6 + 6 * (option.support / maxSupport()))} sx={{ transition: "width 1s linear" }} paddingY={0.5}>
-                        </Grid>, /*against progress bar*/
-                        <Grid xs={Math.min(6, 6 * (-option.support / maxSupport()))} sx={{ backdropFilter: backdropFilter, transition: "width 1s linear", borderRadius: 5 }} paddingY={0.5}>
-                        </Grid>, /*for progress bar*/
-                        <Grid xs={Math.min(6, 6 * (option.support / maxSupport()))} sx={{ backdropFilter: backdropFilter, transition: "width 1s linear", boxShadow: `inset 0px -1px 3px rgb(${shadow},1), 0px 0px 6px rgb(${glow},0.2)`, borderRadius: 5 }} paddingY={0.5}>
-                        </Grid>,
-                        <Grid xs={Math.min(6, 6 - 6 * (option.support / maxSupport()))} sx={{ transition: "width 1s linear" }} paddingY={0.5}>
-                        </Grid>,
-                        <Grid xs={12} padding={0.5}>
-                        </Grid>,
-                    ]).flatMap(x => x)}
-                </Grid>
-            </DndContext>
-            <input type="text" style={{ backgroundColor: `rgb(${shadow},0.1)`, border: 0, borderRadius: 5, boxShadow: `inset 0px 1px 3px rgb(${shadow},0.5)`, padding: 10 }}/>
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <Stack
+                                        padding={1}
+                                        direction="row"
+                                        justifyContent="flex-start"
+                                        alignItems="center"
+                                        spacing={1}
+                                        useFlexGap={true}
+                                        flexWrap="wrap" >
+                                        {consolidate(option.supporters).map(([vid, slotsHere]) =>
+                                            <div style={chipStyle}><span style={chipTextStyle}>{state.players.get(vid) ?? vid}</span><span style={{ whiteSpace: 'nowrap', marginLeft: 4, opacity: 0.7, fontSize: '0.75em' }}>{slotsHere}/{totalSlotsByVoter.get(vid) ?? 1}</span><VoteShareIcon slotsHere={slotsHere} totalSlots={totalSlotsByVoter.get(vid) ?? 1} /></div>
+                                        )}
+                                    </Stack>
+                                </div>
+                            </div>
+                        </Grid>
+                    ]
+                })}
+
+            </Grid>
+            <input type="text" style={{ backgroundColor: `rgb(${shadow},0.1)`, border: 0, borderRadius: 5, boxShadow: `inset 0px 1px 3px rgb(${shadow},0.5)`, padding: 10 }} />
             <TextField
                 value={state.toAdd}
                 onChange={(value) => actions.setToAdd(value.target.value)}
-                
+
             />
             <Button onClick={() => {
                 if (state.toAdd !== "") {
@@ -581,9 +577,9 @@ function App() {
             }}>Set Name</Button>
             <Button onClick={() => actions.clear()}>Clear</Button>
 
-            <div style={{padding: 10, borderRadius: 5, boxShadow: `inset 1px 1px 4px rgb(${glow},0.5), 0px 2px 7px rgb(${shadow},0.3), 0px 1px 2px rgb(${shadow},0.5)` }} > hello world
+            <div style={{ padding: 10, borderRadius: 5, boxShadow: `inset 1px 1px 4px rgb(${glow},0.5), 0px 2px 7px rgb(${shadow},0.3), 0px 1px 2px rgb(${shadow},0.5)` }} > hello world
             </div>
-            <div style={{ width: 100, height: 100, backgroundColor: botGradient, backdropFilter: backdropFilter }}> 
+            <div style={{ width: 100, height: 100, backgroundColor: botGradient, backdropFilter: backdropFilter }}>
             </div>
         </Stack>
     );

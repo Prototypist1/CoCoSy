@@ -1,9 +1,7 @@
-import { Box, Button, Chip, Input, Stack, TextField } from '@mui/material';
-import Typography from '@mui/material/Typography';
 import React, { Reducer, useEffect, useMemo, useReducer, CSSProperties } from 'react';
+import './App.css';
 import * as signalR from "@microsoft/signalr";
 import { v4 } from 'uuid';
-import Grid from '@mui/material/Unstable_Grid2';
 
 
 const glow = "255, 255, 255";
@@ -12,27 +10,51 @@ const botGradient = "126, 157, 143";
 const shadow = "0, 0, 0";
 const backdropFilter = "hue-rotate(-30deg) saturate(105%) brightness(110%) blur(10px)";
 
-const buttonStyle = {
+const buttonStyle: CSSProperties = {
     fontFamily: 'font-awesome',
     color: 'rgb(255,255,255)',
     textShadow: `0 1px 5px rgb(${shadow}, .5)`,
-    fontSize: '30px'
+    fontSize: '30px',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '6px 8px',
+    zIndex: 1,
 }
+
+const panelShadow = `inset 0px 1px 4px rgb(${glow},0.5), 0px 2px 7px rgb(${shadow},0.3), 0px 1px 2px rgb(${shadow},0.5)`;
+const fadingDividerOuter: CSSProperties = {
+    width: 9,
+    margin: '6px 0',
+    alignSelf: 'stretch',
+    display: 'flex',
+    alignItems: 'stretch',
+    maskImage: 'linear-gradient(to bottom, transparent, black 30%, black 70%, transparent)',
+    WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 30%, black 70%, transparent)',
+};
+const fadingDividerInner: CSSProperties = {
+    flex: 1,
+    margin: '0 4px',
+    backgroundColor: `rgb(${shadow},0.15)`,
+    boxShadow: `0 0 4px rgb(${glow},0.4)`,
+};
 
 const baseStyle: CSSProperties = {
     fontFamily: "Roboto,Helvetica,Arial,sans-serif",
     overflowWrap: "break-word",
     userSelect: "none",
-    padding: "8px",
+    //padding: "8px",
     textShadow: `0px 1px 5px rbh(${glow}, 0.5)`,
     borderRadius: "15px",
-    boxShadow: `inset 0px 1px 4px rgb(${glow},0.5), 0px 2px 7px rgb(${shadow},0.3), 0px 1px 2px rgb(${shadow},0.5)`,
-    backdropFilter: backdropFilter
+    boxShadow: panelShadow,
+    backdropFilter: backdropFilter,
+    zIndex: 1,
 };
 
 const optionSyle: CSSProperties = {
     ...baseStyle,
     fontSize: 18,
+    overflow: 'hidden',
 };
 
 const chipStyle: CSSProperties = {
@@ -41,6 +63,7 @@ const chipStyle: CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     minWidth: 0,
+    padding: '4px 8px',
 };
 
 const chipTextStyle: CSSProperties = {
@@ -163,7 +186,8 @@ function buildState(votesAdded: VoteAction[], optionsAdded: AddOptionAction[]): 
 
     for (let voteAction of votesAdded.sort((x, y) => x.at - y.at)) {
 
-        const target = optionMap.get(voteAction.optionName)!;
+        const target = optionMap.get(voteAction.optionName);
+        if (!target) continue;
         const vote = { voterId: voteAction.voterId, voteId: voteAction.voteId };
         if (voteAction.support) {
             if (voteAction.add) {
@@ -443,145 +467,139 @@ function App() {
         }
     }
 
-    const maxSupport = Math.max(...state.options.map(option => Math.abs(option.support)), 0) + 2;
+    const maxSupport = Math.max(...state.options.map(option => Math.abs(option.support)), 0) + 1;
 
     function barFlex(support: number) {
         return Math.abs(support) / maxSupport; // 0 to ~1, never quite reaches 1
     }
 
     return (
-        <Stack
-            direction="column"
-            justifyContent="flex-start"
-            alignItems="center"
-            spacing={2}
-            sx={{ width: 1, background: `linear-gradient( 179.7deg, rgb(${topGradient},1) 0%, rgb(${botGradient},1) 100% )` }}>
-            <Typography variant="h1" /*component="h2"*/ sx={{ backgroundColor: `rgb(${shadow},0.8)`, color: "transparent", textShadow: `0px 2px 3px rgb(${glow},0.5)`, backgroundClip: "text" }}>
+        <div className="app-background" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'center', gap: 16, width: '100%', background: `linear-gradient( 179.7deg, rgb(${topGradient},1) 0%, rgb(${botGradient},1) 100% )` }}>
+            <h1 style={{ backgroundColor: `rgb(${shadow},0.8)`, color: "transparent", textShadow: `0px 2px 3px rgb(${glow},0.5)`, backgroundClip: "text", WebkitBackgroundClip: "text", margin: 0 }}>
                 CoCoSy
-            </Typography>
-            <Grid container columnSpacing={0} sx={{ width: 1 }}>
+            </h1>
+            <div style={{ width: '100%' }}>
                 {state.options.map(option => {
                     const bf = barFlex(option.support);
                     const bfAgainst = option.support < 0 ? bf : 0;
                     const bfFor = option.support > 0 ? bf : 0;
-                    const barDivStyle: CSSProperties = {
-                        borderRadius: 10,
-                        margin: 4,
-                        transition: 'flex 0.4s ease',
-                        backdropFilter: backdropFilter,
-                        boxShadow: `inset 0px 1px 4px rgb(${glow},0.3), 0px 1px 4px rgb(${shadow},0.3)`,
-                    };
+                    const absSupport = Math.max(Math.abs(option.support), 0.001);
+                    const tickUnit = 0.1;
+                    const tickCount = Math.ceil(absSupport / tickUnit) + 1;
+
+                    const makeTicks = (alignRight: boolean) => Array.from({ length: tickCount }, (_, i) => {
+                        const [t, b] = i % 10 === 0 ? [35, 65] : i % 5 === 0 ? [45, 55] : [50, 50];
+                        const mask = `linear-gradient(to bottom, transparent ${t - 5}%, black ${t}%, black ${b}%, transparent ${b + 5}%)`;
+                        return (
+                            <div key={i} style={{ flex: `0 0 auto`, alignSelf: 'stretch', display: 'flex', justifyContent: alignRight ? 'flex-end' : 'flex-start', alignItems: 'stretch', maskImage: mask, WebkitMaskImage: mask, width: `${33.3333 / (maxSupport * 10)}vw`, transition: 'width 0.1s linear' }}>
+                                {/** .8 is a bit of a hack, at 1px it was sometime burring acorss mutiple pixels. I suspect it was trying to draw at a half pixel so it ended up part on two pixels. */ }
+                                <div style={{ width: '.8px', alignSelf: 'stretch', backgroundColor: `rgb(${shadow},0.3)`, boxShadow: `0 0 4px rgb(${glow},0.5)` }} />
+                            </div>
+                        );
+                    });
                     return [
-                        <Grid key={`opt-${option.name}`} xs={12} sx={{ mt: 2 }}>
-                            <div style={{ display: 'flex', alignItems: 'stretch' }}>
-                                <div style={{ flex: 1 - bfAgainst, transition: 'flex 0.4s ease' }} />
-                                <div style={{ flex: bfAgainst, ...barDivStyle }} />
-                                <div style={{ ...optionSyle, flex: '0 0 420px', width: 420, minWidth: 0, display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
-                                    <Button
-                                        sx={{ ...buttonStyle, flex: '0 0 auto' }}
+                        <div key={`opt-${option.name}`} className="option-group" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+                            <div style={{ flex: 1 - bfAgainst, transition: 'flex 0.1s linear' }} />
+                            <div className="option-card" style={{ ...optionSyle, display: 'flex', flexDirection: 'row', flex: 1 + bfAgainst + bfFor, transition: 'flex 0.1s linear'}}>
+                                <div className="support-bar" style={{ flex: bfAgainst, alignSelf: 'stretch', overflow: 'hidden', display: 'flex', flexDirection: 'row-reverse', transition: 'flex 0.1s linear' }}>
+                                    {makeTicks(true)}
+                                </div>
+                                <div className="card-center" style={{ display: 'flex', flexDirection: 'row', flex: 1, }}>
+                                    <button
+                                        className="vote-button"
+                                        style={{ ...buttonStyle, flex: '0 0 auto' }}
                                         onClick={() => {
                                             const retractVote = CanRetractVote(option.supporters);
                                             if (retractVote !== undefined) {
-                                                actions.vote({
-                                                    at: Date.now(), optionName: option.name, support: true, voterId: voterId, messageId: v4(), voteId: retractVote, add: false
-                                                })
+                                                actions.vote({ at: Date.now(), optionName: option.name, support: true, voterId: voterId, messageId: v4(), voteId: retractVote, add: false })
                                             } else {
-                                                actions.vote({
-                                                    at: Date.now(), optionName: option.name, support: false, voterId: voterId, messageId: v4(), voteId: v4(), add: true
-                                                })
+                                                actions.vote({ at: Date.now(), optionName: option.name, support: false, voterId: voterId, messageId: v4(), voteId: v4(), add: true })
                                             }
-                                        }}>{"\uf137"}</Button>
-                                    <Typography variant="h5" noWrap sx={{ flex: 1, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis' }}> {option.name} <Typography variant="caption">({(option.support ?? 0).toFixed(2)})</Typography></Typography>
-                                    <Button
-                                        sx={{ ...buttonStyle, flex: '0 0 auto' }}
+                                        }}>{"\uf137"}</button>
+                                    <div className="option-label" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                        <h5 style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0, maxWidth: '100%' }}>{option.name}</h5>
+                                        <span style={{ fontSize: '0.75em', fontWeight: 400 }}>{(option.support ?? 0).toFixed(2)}</span>
+                                    </div>
+                                    <button
+                                        className="vote-button"
+                                        style={{ ...buttonStyle, flex: '0 0 auto' }}
                                         onClick={() => {
                                             const retractVote = CanRetractVote(option.againsts);
                                             if (retractVote !== undefined) {
-                                                actions.vote({
-                                                    at: Date.now(), optionName: option.name, support: false, voterId: voterId, messageId: v4(), voteId: retractVote, add: false
-                                                })
+                                                actions.vote({ at: Date.now(), optionName: option.name, support: false, voterId: voterId, messageId: v4(), voteId: retractVote, add: false })
                                             } else {
-                                                actions.vote({
-                                                    at: Date.now(), optionName: option.name, support: true, voterId: voterId, messageId: v4(), voteId: v4(), add: true
-                                                })
+                                                actions.vote({ at: Date.now(), optionName: option.name, support: true, voterId: voterId, messageId: v4(), voteId: v4(), add: true })
                                             }
-                                        }}>{"\uf138"}</Button>
+                                        }}>{"\uf138"}</button>
                                 </div>
-                                <div style={{ flex: bfFor, ...barDivStyle }} />
-                                <div style={{ flex: 1 - bfFor, transition: 'flex 0.4s ease' }} />
+                                <div className="support-bar" style={{ flex: bfFor, alignSelf: 'stretch', overflow: 'hidden', display: 'flex', flexDirection: 'row', transition: 'flex 0.1s linear' }}>
+                                    {makeTicks(false)}
+                                </div>
                             </div>
-                        </Grid>,
-                        <Grid key={`voters-${option.name}`} xs={12}>
-                            <div style={{ display: 'flex' }}>
+                            <div style={{ flex: 1 - bfFor, transition: 'flex 0.1s linear' }} />
+                        </div>,
+                        <div key={`voters-${option.name}`} className="voter-row" style={{ marginBottom: 12 }}>
+                            <div style={{ display: 'flex', alignItems: 'stretch' }}>
                                 <div style={{ flex: 1 }}>
-                                    <Stack
-                                        padding={1}
-                                        direction="row"
-                                        justifyContent="flex-end"
-                                        alignItems="center"
-                                        spacing={1}
-                                        useFlexGap={true}
-                                        flexWrap="wrap" >
+                                    <div style={{ padding: 8, display: 'flex', flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                                         {consolidate(option.againsts).map(([vid, slotsHere]) =>
-                                            <div style={chipStyle}><span style={chipTextStyle}>{state.players.get(vid) ?? vid}</span><span style={{ whiteSpace: 'nowrap', marginLeft: 4, opacity: 0.7, fontSize: '0.75em' }}>{slotsHere}/{totalSlotsByVoter.get(vid) ?? 1}</span><VoteShareIcon slotsHere={slotsHere} totalSlots={totalSlotsByVoter.get(vid) ?? 1} /></div>
+                                            <div className="voter-chip" style={chipStyle}><span style={chipTextStyle}>{state.players.get(vid) ?? vid}</span><span style={{ whiteSpace: 'nowrap', marginLeft: 4, opacity: 0.7, fontSize: '0.75em' }}>{slotsHere}/{totalSlotsByVoter.get(vid) ?? 1}</span><VoteShareIcon slotsHere={slotsHere} totalSlots={totalSlotsByVoter.get(vid) ?? 1} /></div>
                                         )}
-                                    </Stack>
+                                    </div>
                                 </div>
+                                <div className="voter-divider" style={fadingDividerOuter}><div style={fadingDividerInner} /></div>
                                 <div style={{ flex: 1 }}>
-                                    <Stack
-                                        padding={1}
-                                        direction="row"
-                                        justifyContent="flex-start"
-                                        alignItems="center"
-                                        spacing={1}
-                                        useFlexGap={true}
-                                        flexWrap="wrap" >
+                                    <div style={{ padding: 8, display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                                         {consolidate(option.supporters).map(([vid, slotsHere]) =>
-                                            <div style={chipStyle}><span style={chipTextStyle}>{state.players.get(vid) ?? vid}</span><span style={{ whiteSpace: 'nowrap', marginLeft: 4, opacity: 0.7, fontSize: '0.75em' }}>{slotsHere}/{totalSlotsByVoter.get(vid) ?? 1}</span><VoteShareIcon slotsHere={slotsHere} totalSlots={totalSlotsByVoter.get(vid) ?? 1} /></div>
+                                            <div className="voter-chip" style={chipStyle}><span style={chipTextStyle}>{state.players.get(vid) ?? vid}</span><span style={{ whiteSpace: 'nowrap', marginLeft: 4, opacity: 0.7, fontSize: '0.75em' }}>{slotsHere}/{totalSlotsByVoter.get(vid) ?? 1}</span><VoteShareIcon slotsHere={slotsHere} totalSlots={totalSlotsByVoter.get(vid) ?? 1} /></div>
                                         )}
-                                    </Stack>
+                                    </div>
                                 </div>
                             </div>
-                        </Grid>
+                        </div>
                     ]
                 })}
 
-            </Grid>
-            <input type="text" style={{ backgroundColor: `rgb(${shadow},0.1)`, border: 0, borderRadius: 5, boxShadow: `inset 0px 1px 3px rgb(${shadow},0.5)`, padding: 10 }} />
-            <TextField
-                value={state.toAdd}
-                onChange={(value) => actions.setToAdd(value.target.value)}
-
-            />
-            <Button onClick={() => {
-                if (state.toAdd !== "") {
-                    actions.addOption({
+            </div>
+            <div className="control-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+                <input
+                    type="text"
+                    value={state.toAdd}
+                    onChange={(e) => actions.setToAdd(e.target.value)}
+                    style={{ backgroundColor: `rgb(${shadow},0.1)`, border: 0, borderRadius: 5, boxShadow: `inset 0px 1px 3px rgb(${shadow},0.5)`, padding: 10 }}
+                />
+                <button onClick={() => {
+                    if (state.toAdd !== "") {
+                        actions.addOption({
+                            at: Date.now(),
+                            name: state.toAdd,
+                            messageId: v4(),
+                        });
+                        actions.setToAdd("");
+                    }
+                }}>Add Option</button>
+                <input
+                    type="text"
+                    value={state.yourName}
+                    onChange={(e) => actions.setYourName(e.target.value)}
+                    style={{ backgroundColor: `rgb(${shadow},0.1)`, border: 0, borderRadius: 5, boxShadow: `inset 0px 1px 3px rgb(${shadow},0.5)`, padding: 10 }}
+                />
+                <button onClick={() => {
+                    actions.setName({
                         at: Date.now(),
-                        name: state.toAdd,
+                        name: state.yourName,
+                        voterId: voterId,
                         messageId: v4(),
                     });
-                    actions.setToAdd("");
-                }
-            }}>Add Option</Button>
-            <TextField
-                value={state.yourName}
-                onChange={(value) => actions.setYourName(value.target.value)}
-            />
-            <Button onClick={() => {
-                actions.setName({
-                    at: Date.now(),
-                    name: state.yourName,
-                    voterId: voterId,
-                    messageId: v4(),
-                });
-            }}>Set Name</Button>
-            <Button onClick={() => actions.clear()}>Clear</Button>
+                }}>Set Name</button>
+                <button onClick={() => actions.clear()}>Clear</button>
+            </div>
 
             <div style={{ padding: 10, borderRadius: 5, boxShadow: `inset 1px 1px 4px rgb(${glow},0.5), 0px 2px 7px rgb(${shadow},0.3), 0px 1px 2px rgb(${shadow},0.5)` }} > hello world
             </div>
             <div style={{ width: 100, height: 100, backgroundColor: botGradient, backdropFilter: backdropFilter }}>
             </div>
-        </Stack>
+        </div>
     );
 }
 

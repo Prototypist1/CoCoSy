@@ -9,6 +9,7 @@ const topGradient = "238, 220, 206";
 const botGradient = "126, 157, 143";
 const shadow = "0, 0, 0";
 const backdropFilter = "hue-rotate(-30deg) saturate(105%) brightness(110%) blur(10px)";
+const halfBackdropFilter = "hue-rotate(-15deg) saturate(102.5%) brightness(105%) blur(5px)";
 
 const buttonStyle: CSSProperties = {
     fontFamily: 'font-awesome',
@@ -23,6 +24,9 @@ const buttonStyle: CSSProperties = {
 }
 
 const panelShadow = `inset 0px 1px 4px rgb(${glow},0.5), 0px 2px 7px rgb(${shadow},0.3), 0px 1px 2px rgb(${shadow},0.5)`;
+const halfPanelShadow = `inset 0px 1px 4px rgb(${glow},0.5), 0px 1px 3px rgb(${shadow},0.65), 0px 1px 1px rgb(${shadow},0.75)`;
+const flexTransition = 'flex 0.1s linear';
+const widthTransition = 'width 0.1s linear';
 const fadingDividerOuter: CSSProperties = {
     width: 9,
     margin: '6px 0',
@@ -45,7 +49,7 @@ const baseStyle: CSSProperties = {
     userSelect: "none",
     //padding: "8px",
     textShadow: `0px 1px 5px rbh(${glow}, 0.5)`,
-    borderRadius: "15px",
+    borderRadius: "8px",
     boxShadow: panelShadow,
     backdropFilter: backdropFilter,
     zIndex: 1,
@@ -55,15 +59,21 @@ const optionSyle: CSSProperties = {
     ...baseStyle,
     fontSize: 18,
     overflow: 'hidden',
+    borderRadius: '9999px',
 };
 
 const chipStyle: CSSProperties = {
     ...optionSyle,
     maxWidth: 300,
     display: 'flex',
-    alignItems: 'center',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
     minWidth: 0,
-    padding: '4px 8px',
+    padding: '4px',
+    gap: 3,
+    borderRadius: '6px',
+    backdropFilter: halfBackdropFilter,
+    boxShadow: halfPanelShadow,
 };
 
 const chipTextStyle: CSSProperties = {
@@ -71,7 +81,6 @@ const chipTextStyle: CSSProperties = {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     minWidth: 0,
-    flex: 1,
 };
 
 type Vote =
@@ -105,10 +114,19 @@ type Yolo =
         support: number,
     }
 
+function getCookie(name: string): string {
+    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return match ? decodeURIComponent(match[2]) : '';
+}
+
+function setCookie(name: string, value: string) {
+    document.cookie = `${name}=${encodeURIComponent(value)};max-age=${60 * 60 * 24 * 365};path=/`;
+}
+
 const testState: State = {
     options: [],
     toAdd: "",
-    yourName: "",
+    yourName: getCookie('playerName'),
     time: Date.now(),
     players: new Map<string, string>()
 }
@@ -402,13 +420,20 @@ const useAppState = () => {
                 return dispatch((lastState) => ({ ...lastState, toAdd: value }))
             },
             setYourName: (value: string) => {
+                setCookie('playerName', value);
                 dispatch((lastState) => ({ ...lastState, yourName: value }));
             }
         }
     }
 }
 
-const voterId: string = v4();
+const voterId: string = (() => {
+    const saved = getCookie('voterId');
+    if (saved) return saved;
+    const id = v4();
+    setCookie('voterId', id);
+    return id;
+})();
 
 function consolidate(votes: Vote[]): [string, number][] {
     const counts = new Map<string, number>();
@@ -455,6 +480,33 @@ function VoteShareIcon({ slotsHere, totalSlots }: { slotsHere: number, totalSlot
     );
 }
 
+function idToHue(id: string): number {
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+        hash = (hash * 31 + id.charCodeAt(i)) & 0xffff;
+    }
+    return hash % 360;
+}
+
+function VoterChip({ name, voterId, slotsHere, totalSlots, reversed = false }: { name: string, voterId: string, slotsHere: number, totalSlots: number, reversed?: boolean }) {
+    const hue = idToHue(voterId);
+    return (
+        <div className="voter-chip" style={{ ...chipStyle, backgroundColor: `hsla(${hue}, 30%, 70%, 0.08)` }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, width: 130 }}>
+                <span style={chipTextStyle}>{name}</span>
+                <span style={{ whiteSpace: 'nowrap', opacity: 0.7, flexShrink: 0 }}>{reversed ? '-' : ''}{slotsHere}/{totalSlots}</span>
+            </div>
+            <div style={{ height: 4, width: 130, borderRadius: 9999, backgroundColor: `rgb(${shadow},0.1)`, display: 'flex', overflow: 'hidden', boxShadow: `inset 0px 1px 2px rgb(${shadow},0.3), 0px 1px 2px rgb(${glow},0.3)` }}>
+                {Array.from({ length: totalSlots }, (_, i) => {
+                    const filled = reversed ? i >= totalSlots - slotsHere : i < slotsHere;
+                    const shade = reversed ? (i % 2 === 0 ? 0.45 : 0.55) : (i % 2 === 0 ? 0.55 : 0.45);
+                    return <div key={i} style={{ flex: 1, height: '100%', backgroundColor: filled ? `rgb(${shadow},${shade})` : 'transparent' }} />;
+                })}
+            </div>
+        </div>
+    );
+}
+
 function App() {
     const { state, actions } = useAppState();
 
@@ -483,7 +535,7 @@ function App() {
                     const bf = barFlex(option.support);
                     const bfAgainst = option.support < 0 ? bf : 0;
                     const bfFor = option.support > 0 ? bf : 0;
-                    const absSupport = Math.max(Math.abs(option.support), 0.001);
+                    const absSupport =Math.abs(option.support);
                     const tickUnit = 0.1;
                     const tickCount = Math.ceil(absSupport / tickUnit) + 1;
 
@@ -491,7 +543,7 @@ function App() {
                         const [t, b] = i % 10 === 0 ? [35, 65] : i % 5 === 0 ? [45, 55] : [50, 50];
                         const mask = `linear-gradient(to bottom, transparent ${t - 5}%, black ${t}%, black ${b}%, transparent ${b + 5}%)`;
                         return (
-                            <div key={i} style={{ flex: `0 0 auto`, alignSelf: 'stretch', display: 'flex', justifyContent: alignRight ? 'flex-end' : 'flex-start', alignItems: 'stretch', maskImage: mask, WebkitMaskImage: mask, width: `${33.3333 / (maxSupport * 10)}vw`, transition: 'width 0.1s linear' }}>
+                            <div key={i} style={{ flex: `0 0 auto`, alignSelf: 'stretch', display: 'flex', justifyContent: alignRight ? 'flex-end' : 'flex-start', alignItems: 'stretch', maskImage: mask, WebkitMaskImage: mask, width: `${33.3333 * tickUnit / (maxSupport)}vw`, transition: widthTransition }}>
                                 {/** .8 is a bit of a hack, at 1px it was sometime burring acorss mutiple pixels. I suspect it was trying to draw at a half pixel so it ended up part on two pixels. */ }
                                 <div style={{ width: '.8px', alignSelf: 'stretch', backgroundColor: `rgb(${shadow},0.3)`, boxShadow: `0 0 4px rgb(${glow},0.5)` }} />
                             </div>
@@ -499,9 +551,9 @@ function App() {
                     });
                     return [
                         <div key={`opt-${option.name}`} className="option-group" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
-                            <div style={{ flex: 1 - bfAgainst, transition: 'flex 0.1s linear' }} />
-                            <div className="option-card" style={{ ...optionSyle, display: 'flex', flexDirection: 'row', flex: 1 + bfAgainst + bfFor, transition: 'flex 0.1s linear'}}>
-                                <div className="support-bar" style={{ flex: bfAgainst, alignSelf: 'stretch', overflow: 'hidden', display: 'flex', flexDirection: 'row-reverse', transition: 'flex 0.1s linear' }}>
+                            <div style={{ flex: 1 - bfAgainst, transition: flexTransition }} />
+                            <div className="option-card" style={{ ...optionSyle, display: 'flex', flexDirection: 'row', flex: 1 + bfAgainst + bfFor, transition: flexTransition}}>
+                                <div className="support-bar" style={{ flex: bfAgainst, alignSelf: 'stretch', overflow: 'hidden', display: 'flex', flexDirection: 'row-reverse', transition: flexTransition }}>
                                     {makeTicks(true)}
                                 </div>
                                 <div className="card-center" style={{ display: 'flex', flexDirection: 'row', flex: 1, }}>
@@ -532,18 +584,18 @@ function App() {
                                             }
                                         }}>{"\uf138"}</button>
                                 </div>
-                                <div className="support-bar" style={{ flex: bfFor, alignSelf: 'stretch', overflow: 'hidden', display: 'flex', flexDirection: 'row', transition: 'flex 0.1s linear' }}>
+                                <div className="support-bar" style={{ flex: bfFor, alignSelf: 'stretch', overflow: 'hidden', display: 'flex', flexDirection: 'row', transition: flexTransition }}>
                                     {makeTicks(false)}
                                 </div>
                             </div>
-                            <div style={{ flex: 1 - bfFor, transition: 'flex 0.1s linear' }} />
+                            <div style={{ flex: 1 - bfFor, transition: flexTransition }} />
                         </div>,
                         <div key={`voters-${option.name}`} className="voter-row" style={{ marginBottom: 12 }}>
                             <div style={{ display: 'flex', alignItems: 'stretch' }}>
                                 <div style={{ flex: 1 }}>
                                     <div style={{ padding: 8, display: 'flex', flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                                         {consolidate(option.againsts).map(([vid, slotsHere]) =>
-                                            <div className="voter-chip" style={chipStyle}><span style={chipTextStyle}>{state.players.get(vid) ?? vid}</span><span style={{ whiteSpace: 'nowrap', marginLeft: 4, opacity: 0.7, fontSize: '0.75em' }}>{slotsHere}/{totalSlotsByVoter.get(vid) ?? 1}</span><VoteShareIcon slotsHere={slotsHere} totalSlots={totalSlotsByVoter.get(vid) ?? 1} /></div>
+                                            <VoterChip key={vid} voterId={vid} name={state.players.get(vid) ?? vid} slotsHere={slotsHere} totalSlots={totalSlotsByVoter.get(vid)!} reversed />
                                         )}
                                     </div>
                                 </div>
@@ -551,7 +603,7 @@ function App() {
                                 <div style={{ flex: 1 }}>
                                     <div style={{ padding: 8, display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                                         {consolidate(option.supporters).map(([vid, slotsHere]) =>
-                                            <div className="voter-chip" style={chipStyle}><span style={chipTextStyle}>{state.players.get(vid) ?? vid}</span><span style={{ whiteSpace: 'nowrap', marginLeft: 4, opacity: 0.7, fontSize: '0.75em' }}>{slotsHere}/{totalSlotsByVoter.get(vid) ?? 1}</span><VoteShareIcon slotsHere={slotsHere} totalSlots={totalSlotsByVoter.get(vid) ?? 1} /></div>
+                                            <VoterChip key={vid} voterId={vid} name={state.players.get(vid) ?? vid} slotsHere={slotsHere} totalSlots={totalSlotsByVoter.get(vid)!} />
                                         )}
                                     </div>
                                 </div>

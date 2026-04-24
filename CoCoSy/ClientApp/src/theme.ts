@@ -9,6 +9,11 @@ export const halfBackdropFilter = "hue-rotate(-15deg) saturate(102.5%) brightnes
 
 export const panelShadow = `inset 0px 1px 4px rgb(${glow},0.5), 0px 2px 7px rgb(${shadow},0.3), 0px 1px 2px rgb(${shadow},0.5)`;
 export const halfPanelShadow = `inset 0px 1px 4px rgb(${glow},0.5), 0px 1px 3px rgb(${shadow},0.65), 0px 1px 1px rgb(${shadow},0.75)`;
+export const primaryOpacity = 0.9;
+export const secondaryOpacity = 0.7;
+export const primaryTextGlow = `0 0 8px rgb(${glow}, 0.4)`;
+export const secondaryTextGlow = `0 0 6px rgb(${glow}, 0.25)`;
+
 export const flexTransition = 'flex 0.1s linear';
 export const widthTransition = 'width 0.1s linear';
 
@@ -42,7 +47,7 @@ export const buttonStyle: CSSProperties = {
 };
 
 export const baseStyle: CSSProperties = {
-    fontFamily: "'Inter', system-ui, sans-serif",
+    fontFamily: "'Inter Tight', system-ui, sans-serif",
     overflowWrap: "break-word",
     userSelect: "none",
     textShadow: `0px 1px 5px rbh(${glow}, 0.5)`,
@@ -78,4 +83,6 @@ export const chipTextStyle: CSSProperties = {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     minWidth: 0,
+    opacity: primaryOpacity,
+    textShadow: primaryTextGlow,
 };

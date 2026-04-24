@@ -14,7 +14,7 @@ export function NameEntryPage({ onConfirm }: { onConfirm: (name: string) => void
                     onChange={(e) => setName(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter' && name.trim()) onConfirm(name.trim()); }}
                     autoFocus
-                    style={{ backgroundColor: `rgb(${shadow},0.1)`, border: 0, borderRadius: 5, boxShadow: `inset 0px 1px 3px rgb(${shadow},0.5)`, padding: 10, fontFamily: "'Inter', system-ui, sans-serif", fontSize: 16, outline: 'none', color: 'inherit', width: 200 }}
+                    style={{ backgroundColor: `rgb(${shadow},0.1)`, border: 0, borderRadius: 5, boxShadow: `inset 0px 1px 3px rgb(${shadow},0.5)`, padding: 10, fontFamily: "'Inter Tight', system-ui, sans-serif", fontSize: 16, outline: 'none', color: 'inherit', width: 200 }}
                 />
                 <button
                     className="vote-button"

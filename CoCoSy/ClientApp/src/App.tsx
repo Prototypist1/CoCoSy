@@ -8,7 +8,7 @@ import { NameEntryPage } from './NameEntryPage';
 import { VoterChip } from './VoterChip';
 import {
     optionStyle, buttonStyle, fadingDividerOuter, fadingDividerInner,
-    flexTransition, widthTransition, shadow, glow,
+    flexTransition, widthTransition, shadow, glow, primaryOpacity, secondaryOpacity, primaryTextGlow, secondaryTextGlow, backdropFilter,
 } from './theme';
 import { Vote } from './types';
 
@@ -48,7 +48,9 @@ function App() {
         }
     }
 
-    const maxSupport = Math.max(...state.options.map(option => Math.abs(option.support)), 0) + 1;
+    const largestSupport = Math.max(...state.options.map(option => Math.abs(option.support)), 0);
+    let maxSupport = 1;
+    while (maxSupport <= largestSupport) maxSupport *= 2;
 
     function barFlex(support: number) {
         return Math.abs(support) / maxSupport;
@@ -65,25 +67,42 @@ function App() {
                     const tickUnit = 0.1;
                     const tickCount = Math.ceil(absSupport / tickUnit) + 1;
 
-                    const makeTicks = (alignRight: boolean) => Array.from({ length: tickCount }, (_, i) => {
+                    const tickWidthVw = `${33.3333 * tickUnit / maxSupport}vw`;
+                    const tickColor = `rgb(${shadow},0.55)`;
+                    const tickGlow = `0 0 4px rgb(${glow},0.6)`;
+
+                    const makeTick = (i: number, alignRight: boolean, widthVw = tickWidthVw, opacity = 1) => {
                         const [t, b] = i % 10 === 0 ? [35, 65] : i % 5 === 0 ? [45, 55] : [50, 50];
                         const mask = `linear-gradient(to bottom, transparent ${t - 5}%, black ${t}%, black ${b}%, transparent ${b + 5}%)`;
                         return (
-                            <div key={i} style={{ flex: `0 0 auto`, alignSelf: 'stretch', display: 'flex', justifyContent: alignRight ? 'flex-end' : 'flex-start', alignItems: 'stretch', maskImage: mask, WebkitMaskImage: mask, width: `${33.3333 * tickUnit / maxSupport}vw`, transition: widthTransition }}>
+                            <div key={i} style={{ flex: `0 0 auto`, alignSelf: 'stretch', display: 'flex', justifyContent: alignRight ? 'flex-end' : 'flex-start', alignItems: 'stretch', maskImage: mask, WebkitMaskImage: mask, width: widthVw, transition: widthTransition, opacity }}>
                                 {/* .8px avoids half-pixel blur at 1px */}
-                                <div style={{ width: '.8px', alignSelf: 'stretch', backgroundColor: `rgb(${shadow},0.3)`, boxShadow: `0 0 4px rgb(${glow},0.5)` }} />
+                                <div style={{ width: '.8px', alignSelf: 'stretch', backgroundColor: tickColor, boxShadow: tickGlow }} />
                             </div>
                         );
-                    });
+                    };
+
+                    const makeTicks = (alignRight: boolean) => Array.from({ length: tickCount }, (_, i) => makeTick(i, alignRight));
+
+                    const makePaddingTicks = (support: number, alignRight: boolean) => {
+                        const n = Math.ceil(support / tickUnit);
+                        const offsetVw = (n * tickUnit - support) / maxSupport * 33.3333;
+                        return <>
+                            {offsetVw > 0 && <div key={n} style={{ flex: '0 0 auto', width: `${offsetVw}vw`, transition: widthTransition }} />}
+                            {Array.from({ length: 5 }, (_, i) => makeTick(n + i, alignRight, tickWidthVw, 1 - i * 0.2))}
+                        </>;
+                    };
 
                     return [
-                        <div key={`opt-${option.name}`} className="option-group" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
-                            <div style={{ flex: 1 - bfAgainst, transition: flexTransition }} />
-                            <div className="option-card" style={{ ...optionStyle, display: 'flex', flexDirection: 'row', flex: 1 + bfAgainst + bfFor, transition: flexTransition }}>
+                        <div key={`opt-${option.name}`} className="option-group" style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch' }}>
+                            <div style={{ flex: 1 - bfAgainst, transition: flexTransition, display: 'flex', flexDirection: 'row-reverse', overflow: 'hidden', alignItems: 'stretch' }}>
+                                {makePaddingTicks(Math.max(-option.support, 0), true)}
+                            </div>
+                            <div className="option-card" style={{ ...optionStyle, backdropFilter: 'none', display: 'flex', flexDirection: 'row', flex: 1 + bfAgainst + bfFor, transition: flexTransition }}>
                                 <div className="support-bar" style={{ flex: bfAgainst, alignSelf: 'stretch', overflow: 'hidden', display: 'flex', flexDirection: 'row-reverse', transition: flexTransition }}>
                                     {makeTicks(true)}
                                 </div>
-                                <div className="card-center" style={{ display: 'flex', flexDirection: 'row', flex: 1, padding: '8px 0' }}>
+                                <div className="card-center" style={{ display: 'flex', flexDirection: 'row', flex: 1, padding: '8px 0', backdropFilter }}>
                                     <button
                                         className="vote-button"
                                         style={{ ...buttonStyle, flex: '0 0 auto' }}
@@ -96,8 +115,8 @@ function App() {
                                             }
                                         }}>{"\uf137"}</button>
                                     <div className="option-label" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%', fontSize: 20, fontWeight: 400 }}>{option.name}</span>
-                                        <span style={{ fontSize: '0.75em', fontWeight: 400 }}>{(option.support ?? 0).toFixed(2)}</span>
+                                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%', fontSize: 20, fontWeight: 400, opacity: primaryOpacity, textShadow: primaryTextGlow }}>{option.name}</span>
+                                        <span style={{ fontSize: '0.75em', fontWeight: 400, opacity: secondaryOpacity, textShadow: secondaryTextGlow }}>{(option.support ?? 0).toFixed(2)}</span>
                                     </div>
                                     <button
                                         className="vote-button"
@@ -115,7 +134,9 @@ function App() {
                                     {makeTicks(false)}
                                 </div>
                             </div>
-                            <div style={{ flex: 1 - bfFor, transition: flexTransition }} />
+                            <div style={{ flex: 1 - bfFor, transition: flexTransition, display: 'flex', flexDirection: 'row', overflow: 'hidden', alignItems: 'stretch' }}>
+                                {makePaddingTicks(Math.max(option.support, 0), false)}
+                            </div>
                         </div>,
                         <div key={`voters-${option.name}`} className="voter-row" style={{ marginBottom: 12 }}>
                             <div style={{ display: 'flex', alignItems: 'stretch' }}>
@@ -152,7 +173,7 @@ function App() {
                                 actions.setToAdd("");
                             }
                         }}
-                        style={{ backgroundColor: `rgb(${shadow},0.1)`, border: 0, borderRadius: 5, boxShadow: `inset 0px 1px 3px rgb(${shadow},0.5)`, padding: 10, fontFamily: "'Inter', system-ui, sans-serif", fontSize: 16, outline: 'none', color: 'inherit', width: 200 }}
+                        style={{ backgroundColor: `rgb(${shadow},0.1)`, border: 0, borderRadius: 5, boxShadow: `inset 0px 1px 3px rgb(${shadow},0.5)`, padding: 10, fontFamily: "'Inter Tight', system-ui, sans-serif", fontSize: 16, outline: 'none', color: 'inherit', width: 200 }}
                     />
                     <button
                         className="vote-button"

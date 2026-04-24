@@ -1,5 +1,5 @@
 import React from 'react';
-import { chipStyle, chipTextStyle, shadow, glow } from './theme';
+import { chipStyle, chipTextStyle, shadow, glow, secondaryOpacity, secondaryTextGlow } from './theme';
 
 function idToHue(id: string): number {
     let hash = 0;
@@ -21,7 +21,7 @@ export function VoterChip({ name, voterId, slotsHere, totalSlots, reversed = fal
         <div className="voter-chip" style={{ ...chipStyle, backgroundColor: `hsla(${hue}, 30%, 70%, 0.08)` }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, width: 130 }}>
                 <span style={chipTextStyle}>{name}</span>
-                <span style={{ whiteSpace: 'nowrap', opacity: 0.7, flexShrink: 0 }}>{reversed ? '-' : ''}{slotsHere}/{totalSlots}</span>
+                <span style={{ whiteSpace: 'nowrap', opacity: secondaryOpacity, flexShrink: 0, textShadow: secondaryTextGlow }}>{reversed ? '-' : ''}{slotsHere}/{totalSlots}</span>
             </div>
             <div style={{ height: 4, width: 130, borderRadius: 9999, backgroundColor: `rgb(${shadow},0.1)`, display: 'flex', overflow: 'hidden', boxShadow: `inset 0px 1px 2px rgb(${shadow},0.3), 0px 1px 2px rgb(${glow},0.3)` }}>
                 {Array.from({ length: totalSlots }, (_, i) => {

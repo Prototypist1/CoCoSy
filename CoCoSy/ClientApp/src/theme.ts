@@ -11,6 +11,7 @@ export const recessedBackdropFilter = "hue-rotate(15deg) saturate(97.5%) brightn
 
 export const panelShadow = `inset 0px 1px 4px rgb(${glow},0.5), 0px 2px 7px rgb(${shadow},0.3), 0px 1px 2px rgb(${shadow},0.5)`;
 export const halfPanelShadow = `inset 0px 1px 4px rgb(${glow},0.5), 0px 1px 3px rgb(${shadow},0.65), 0px 1px 1px rgb(${shadow},0.75)`;
+// really half recessedPanelShadow
 export const recessedPanelShadow = `0px 1px 2px rgb(${glow},0.5), inset 0px 1px 3px rgb(${shadow},0.65), inset 0px 0px 1px rgb(${shadow},0.75)`;
 export const primaryOpacity = 0.9;
 export const secondaryOpacity = 0.7;
@@ -41,7 +42,7 @@ export const buttonPadding = 16;
 
 export const buttonStyle: CSSProperties = {
     fontFamily: 'font-awesome',
-    color: 'rgb(255,255,255)',
+    color: 'rgb(255,255,255, .95)',
     textShadow: `0 1px 5px rgb(${shadow}, .5)`,
     fontSize: '30px',
     background: 'none',

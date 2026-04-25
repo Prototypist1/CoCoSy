@@ -18,9 +18,39 @@ body {
     z-index: 0;
 }
 
+
+.recessed-container:hover {
+    /* like 3/4 recssedPanelShadow */
+    box-shadow: 0px 1px 2px rgba(255,255,255,0.5), inset 0px 1px 5px rgba(0,0,0,0.425), inset 0px 1px 1.5px rgba(0,0,0,0.625) !important;
+    backdrop-filter: hue-rotate(22deg) saturate(96%) brightness(92.5%) blur(10px) !important;
+    outline: none;
+}
+
+
+.recessed-input:focus,
+.recessed-container:focus-within {
+    /* panelShadow  but swaped the insets*/
+    box-shadow: 0px 1px 2px rgba(255,255,255,0.5), inset 0px 2px 7px rgba(0,0,0,0.3), inset 0px 1px 2px rgba(0,0,0,0.5) !important;
+    backdrop-filter: hue-rotate(30deg) saturate(95%) brightness(90%) blur(10px) !important;
+    outline: none;
+}
+
+.vote-button:focus, .vote-button:focus-visible, .vote-button:hover {
+    color: rgb(255,255,255) !important;
+}
+
+.vote-button.dark:focus, .vote-button.dark:focus-visible, .vote-button.dark:hover {
+    color: #333 !important;
+}
+
+/* suppress webkits ungly focus ring*/
+.vote-button:focus-visible {
+    outline: none;
+}
+
 .vote-button:active {
     transform: scale(0.99);
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6) !important;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6) !important, 0 0 10px rgba(255, 255, 255, 0.2);
     transition: transform 0.05s, text-shadow 0.05s;
-    color: rgb(254,254,254) !important;
+    color: rgb(255,255,255, .99) !important;
 }

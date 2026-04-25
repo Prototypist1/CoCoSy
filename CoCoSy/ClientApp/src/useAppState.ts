@@ -108,12 +108,22 @@ const initialState: State = {
     players: new Map<string, string>(),
 };
 
+function getOrCreateGameId(): string {
+    const path = window.location.pathname.slice(1);
+    if (path) return path;
+    const gameId = v4();
+    window.history.replaceState(null, '', `/${gameId}`);
+    return gameId;
+}
+
+export const gameId = getOrCreateGameId();
+
 export const useAppState = () => {
     const [state, dispatch] = useReducer(reducer, initialState);
 
     const { vote, setName, addOption, refresh, clear } = useMemo(() => {
         const connection = new signalR.HubConnectionBuilder()
-            .withUrl("https://localhost:7277/relayhub", {
+            .withUrl(`https://localhost:7277/relayhub?gameId=${gameId}`, {
                 withCredentials: false,
                 transport: signalR.HttpTransportType.WebSockets,
                 skipNegotiation: true,

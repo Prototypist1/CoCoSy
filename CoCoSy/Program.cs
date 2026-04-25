@@ -22,6 +22,7 @@ builder.Services.AddCors(options =>
 
 //builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
+builder.Services.AddSingleton<CoCoSy.Hubs.BlobGameStore>();
 
 //builder.Services.AddLogging();
 

@@ -1,77 +1,83 @@
-﻿using Microsoft.AspNetCore.SignalR;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-using System.Xml.Linq;
+using Microsoft.AspNetCore.SignalR;
 using Prototypist.TaskChain;
+using System.Collections.Concurrent;
 
 namespace CoCoSy.Hubs
 {
+    public class GameState
+    {
+        public ConcurrentLinkedList<VoteAction> Votes = new();
+        public ConcurrentLinkedList<SetNameAction> Names = new();
+        public ConcurrentLinkedList<AddOptionAction> Options = new();
+    }
+
     public class RelayHub : Hub
     {
-        private static ConcurrentLinkedList<(DateTime at, VoteAction action)> votes = new ConcurrentLinkedList<(DateTime at, VoteAction action)>();
-        private static ConcurrentLinkedList<(DateTime at, SetNameAction action)> setNames = new ConcurrentLinkedList<(DateTime at, SetNameAction action)>();
-        private static ConcurrentLinkedList<(DateTime at, AddOptionAction action)> addOptions = new ConcurrentLinkedList<(DateTime at, AddOptionAction action)>();
 
-        public Task VoteAction(VoteAction action)
+        private static ConcurrentDictionary<string, Guid> connectionGames = new();
+
+        private readonly BlobGameStore _store;
+        public RelayHub(BlobGameStore store) { _store = store; }
+
+
+        private Guid GameId() => connectionGames[Context.ConnectionId];
+        private string GameGroup() => GameId().ToString();
+
+        public override async Task OnConnectedAsync()
         {
-            votes.Add((DateTime.UtcNow, action));
-            return Clients.All.SendAsync("VoteAction", action);
-        }
-        public Task SetNameAction(SetNameAction action)
-        {
-            setNames.Add((DateTime.UtcNow, action));
-            return Clients.All.SendAsync("SetNameAction", action);
-        }
-        public Task AddOptionAction(AddOptionAction action)
-        {
-            addOptions.Add((DateTime.UtcNow, action));
-            return Clients.All.SendAsync("AddOptionAction", action);
+            var raw = Context.GetHttpContext()?.Request.Query["gameId"].ToString();
+            if (Guid.TryParse(raw, out var gameId))
+            {
+                connectionGames[Context.ConnectionId] = gameId;
+                await Groups.AddToGroupAsync(Context.ConnectionId, gameId.ToString());
+            }
+            await base.OnConnectedAsync();
         }
 
-        public Task Clear(Clear clear)
+        public override Task OnDisconnectedAsync(Exception? exception)
         {
-            votes = new ConcurrentLinkedList<(DateTime at, VoteAction action)> ();
-            setNames = new ConcurrentLinkedList<(DateTime at, SetNameAction action)>();
-            addOptions = new ConcurrentLinkedList<(DateTime at, AddOptionAction action)>();
-            return Clients.All.SendAsync("Clear", clear);
+            connectionGames.TryRemove(Context.ConnectionId, out _);
+            return base.OnDisconnectedAsync(exception);
+        }
+
+        public async Task VoteAction(VoteAction action)
+        {
+            var game = await _store.GetGame(GameId());
+            game.Votes.Add(action);
+            await Clients.Group(GameGroup()).SendAsync("VoteAction", action);
+            _store.MarkForSave(GameId());
+        }
+
+        public async Task SetNameAction(SetNameAction action)
+        {
+            var game = await _store.GetGame(GameId());
+            game.Names.Add(action);
+            await Clients.Group(GameGroup()).SendAsync("SetNameAction", action);
+            _store.MarkForSave(GameId());
+        }
+
+        public async Task AddOptionAction(AddOptionAction action)
+        {
+            var game = await _store.GetGame(GameId());
+            game.Options.Add(action);
+            await Clients.Group(GameGroup()).SendAsync("AddOptionAction", action);
+            _store.MarkForSave(GameId());
         }
 
         public async Task Hello(Hello _)
         {
-            RemoveOld();
-
-            foreach (var (_, setNames) in setNames)
-            {
-                await Clients.Caller.SendAsync("SetNameAction", setNames);
-            }
-            foreach (var (_, addOption) in addOptions)
-            {
-                await Clients.Caller.SendAsync("AddOptionAction", addOption);
-            }
-            foreach (var (_, vote) in votes)
-            {
+            var game = await _store.GetGame(GameId());
+            foreach (var name in game.Names)
+                await Clients.Caller.SendAsync("SetNameAction", name);
+            foreach (var option in game.Options)
+                await Clients.Caller.SendAsync("AddOptionAction", option);
+            foreach (var vote in game.Votes)
                 await Clients.Caller.SendAsync("VoteAction", vote);
-            }
-        }
-
-        private static void RemoveOld()
-        {
-            var now = DateTime.UtcNow;
-            foreach (var pair in votes.Where(x => x.at.AddHours(1) < now).ToArray())
-            {
-                votes.Remove(pair);
-            }
-            foreach (var pair in setNames.Where(x => x.at.AddHours(1) < now).ToArray())
-            {
-                setNames.Remove(pair);
-            }
-            foreach (var pair in addOptions.Where(x => x.at.AddHours(1) < now).ToArray())
-            {
-                addOptions.Remove(pair);
-            }
         }
     }
 
-    public class VoteAction { 
+    public class VoteAction
+    {
         public string voterId { get; set; }
         public string optionName { get; set; }
         public double at { get; set; }
@@ -88,6 +94,7 @@ namespace CoCoSy.Hubs
         public double at { get; set; }
         public string messageId { get; set; }
     }
+
     public class AddOptionAction
     {
         public string name { get; set; }
@@ -95,10 +102,6 @@ namespace CoCoSy.Hubs
         public string messageId { get; set; }
     }
 
-    public class Hello {
-    }
-
-    public class Clear { 
-    }
+    public class Hello { }
 
 }

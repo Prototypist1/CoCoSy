@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import './App.css';
 import { v4 } from 'uuid';
 import { useAppState } from './useAppState';
@@ -32,6 +33,7 @@ function CanRetractVote(otherSideVotes: Vote[]): string | undefined {
 function App() {
     const { state, actions } = useAppState();
     const [nameConfirmed, setNameConfirmed] = useState(getCookie('playerName') !== '');
+    const [showInvite, setShowInvite] = useState(false);
 
     if (!nameConfirmed) {
         return <NameEntryPage onConfirm={(name) => {
@@ -71,7 +73,7 @@ function App() {
                     const tickGlow = `0 0 3px rgb(${glow},0.6), 0 0 8px rgb(${glow},0.4)`;
 
                     const makeTick = (i: number, alignRight: boolean, widthVw = tickWidthVw, opacity = 1) => {
-                        const fontSize = '.6em';// i % 10 === 0 ? '1em' : i % 5 === 0 ? '.8em' : '.6em';
+                        const fontSize = '.6em';
                         return (
                             <div key={i} style={{ flex: `0 0 auto`, display: 'flex', justifyContent: alignRight ? 'flex-end' : 'flex-start', alignItems: 'center', width: widthVw, transition: widthTransition, opacity }}>
                                 <span style={{ fontSize, color: tickColor, textShadow: tickGlow, lineHeight: 1, userSelect: 'none' }}>|</span>
@@ -158,9 +160,9 @@ function App() {
                 })}
                 <div className="control-panel" style={{ display: 'flex', flexDirection: 'row', width: '100%' }}>
                     <div style={{ flex: 1 }} />
-                    <div style={{ ...optionStyle, boxShadow: recessedPanelShadow, backdropFilter: recessedBackdropFilter, flex: 1, display: 'flex', flexDirection: 'row', alignItems: 'stretch' }}>
+                    <div className="recessed-container" style={{ ...optionStyle, boxShadow: recessedPanelShadow, backdropFilter: recessedBackdropFilter, flex: 1, display: 'flex', flexDirection: 'row', alignItems: 'stretch' }}>
                         <div style={{ aspectRatio: '1', flex: '0 0 auto' }} />
-                        <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
+                        <div style={{ flex: 1, minWidth: 0, alignItems: 'stretch', display: 'flex' }}>
                             <input
                                 type="text"
                                 value={state.toAdd}
@@ -172,7 +174,7 @@ function App() {
                                         actions.setToAdd("");
                                     }
                                 }}
-                                style={{ flex: 1, minWidth: 0, background: 'none', border: 0, padding: 10, fontFamily: "'Inter Tight', system-ui, sans-serif", fontSize: 16, outline: 'none', color: 'inherit', textAlign: 'center' }}
+                                style={{ flex: 1, minWidth: 0, background: 'none', border: 0, fontFamily: "'Inter Tight', system-ui, sans-serif", fontSize: 16, outline: 'none', color: 'inherit', textAlign: 'center' }}
                             />
                         </div>
                         <button
@@ -192,6 +194,39 @@ function App() {
             </div>
             
             <button onClick={() => actions.clear()}>Clear</button>
+
+            {showInvite && (
+                <div style={{ position: 'fixed', top: 24, right: 24, backgroundColor: 'white', borderRadius: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.3)', zIndex: 100 }}>
+                    <button
+                        className="vote-button dark"
+                        style={{ color: '#333', fontSize: 16, backgroundColor: 'rgba(0,0,0,0)', padding: '8px 16px', border: 0, alignSelf: 'flex-end' }}
+                        onClick={() => setShowInvite(false)}
+                    >✕</button>
+                    <div style={{ padding: '0px 16px' }}>
+                        <QRCodeSVG value={window.location.href} size={180} />
+                    </div>
+                    <button
+                        className="vote-button dark"
+                        style={{ ...buttonStyle, color: '#333', textShadow: 'none', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6, aspectRatio: 'unset', width: '100%', justifyContent: 'center', paddingTop: '8px', paddingBottom: '16px' }}
+                        onClick={() => navigator.clipboard.writeText(window.location.href)}
+                    >
+                        <span style={{ fontFamily: "'Inter Tight', system-ui, sans-serif", fontSize: 13 }}>Copy link</span>
+                        <span style={{ fontFamily: 'font-awesome', fontSize: 16, lineHeight: 1 }}>{"\uf0c5"}</span>
+                    </button>
+                </div>
+            )}
+            {!showInvite && (
+
+                <button
+                    className="vote-button dark"
+                    style={{ ...buttonStyle, ...optionStyle, position: 'fixed', top: 24, right: 24, borderRadius: 8, display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8, aspectRatio: 'unset', padding: '8px 16px', backgroundColor: 'rgba(255,255,255,0.95)', color: '#333', textShadow: 'none' }}
+                    onClick={() => setShowInvite(v => !v)}
+                    title="Invite"
+                >
+                    <span style={{ fontFamily: 'font-awesome', fontSize: 16, lineHeight: 1 }}>{"\uf029"}</span>
+                    <span style={{ fontFamily: "'Inter Tight', system-ui, sans-serif", fontSize: 16 }}>Invite</span>
+                </button>)
+            }
 
         </AppBackground>
     );

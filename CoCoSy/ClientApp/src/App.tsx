@@ -8,7 +8,7 @@ import { NameEntryPage } from './NameEntryPage';
 import { VoterChip } from './VoterChip';
 import {
     optionStyle, buttonStyle, fadingDividerOuter, fadingDividerInner,
-    flexTransition, widthTransition, shadow, glow, primaryOpacity, secondaryOpacity, primaryTextGlow, secondaryTextGlow, backdropFilter,
+    flexTransition, widthTransition, shadow, glow, primaryOpacity, secondaryOpacity, primaryTextGlow, secondaryTextGlow, backdropFilter, halfBackdropFilter, recessedBackdropFilter, nintyBackdropFilter, recessedPanelShadow,
 } from './theme';
 import { Vote } from './types';
 
@@ -48,9 +48,8 @@ function App() {
         }
     }
 
-    const largestSupport = Math.max(...state.options.map(option => Math.abs(option.support)), 0);
-    let maxSupport = 1;
-    while (maxSupport <= largestSupport) maxSupport *= 2;
+    let maxSupport = Math.max(...state.options.map(option => Math.abs(option.support)), 0) + 1;
+
 
     function barFlex(support: number) {
         return Math.abs(support) / maxSupport;
@@ -68,16 +67,14 @@ function App() {
                     const tickCount = Math.ceil(absSupport / tickUnit) + 1;
 
                     const tickWidthVw = `${33.3333 * tickUnit / maxSupport}vw`;
-                    const tickColor = `rgb(${shadow},0.55)`;
-                    const tickGlow = `0 0 4px rgb(${glow},0.6)`;
+                    const tickColor = `rgb(${shadow},${secondaryOpacity})`;
+                    const tickGlow = `0 0 3px rgb(${glow},0.6), 0 0 8px rgb(${glow},0.4)`;
 
                     const makeTick = (i: number, alignRight: boolean, widthVw = tickWidthVw, opacity = 1) => {
-                        const [t, b] = i % 10 === 0 ? [35, 65] : i % 5 === 0 ? [45, 55] : [50, 50];
-                        const mask = `linear-gradient(to bottom, transparent ${t - 5}%, black ${t}%, black ${b}%, transparent ${b + 5}%)`;
+                        const fontSize = '.6em';// i % 10 === 0 ? '1em' : i % 5 === 0 ? '.8em' : '.6em';
                         return (
-                            <div key={i} style={{ flex: `0 0 auto`, alignSelf: 'stretch', display: 'flex', justifyContent: alignRight ? 'flex-end' : 'flex-start', alignItems: 'stretch', maskImage: mask, WebkitMaskImage: mask, width: widthVw, transition: widthTransition, opacity }}>
-                                {/* .8px avoids half-pixel blur at 1px */}
-                                <div style={{ width: '.8px', alignSelf: 'stretch', backgroundColor: tickColor, boxShadow: tickGlow }} />
+                            <div key={i} style={{ flex: `0 0 auto`, display: 'flex', justifyContent: alignRight ? 'flex-end' : 'flex-start', alignItems: 'center', width: widthVw, transition: widthTransition, opacity }}>
+                                <span style={{ fontSize, color: tickColor, textShadow: tickGlow, lineHeight: 1, userSelect: 'none' }}>|</span>
                             </div>
                         );
                     };
@@ -89,20 +86,20 @@ function App() {
                         const offsetVw = (n * tickUnit - support) / maxSupport * 33.3333;
                         return <>
                             {offsetVw > 0 && <div key={n} style={{ flex: '0 0 auto', width: `${offsetVw}vw`, transition: widthTransition }} />}
-                            {Array.from({ length: 5 }, (_, i) => makeTick(n + i, alignRight, tickWidthVw, 1 - i * 0.2))}
+                            {Array.from({ length: 10 }, (_, i) => makeTick(n + i, alignRight, tickWidthVw, 1 - i * 0.1))}
                         </>;
                     };
 
                     return [
                         <div key={`opt-${option.name}`} className="option-group" style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch' }}>
                             <div style={{ flex: 1 - bfAgainst, transition: flexTransition, display: 'flex', flexDirection: 'row-reverse', overflow: 'hidden', alignItems: 'stretch' }}>
-                                {makePaddingTicks(Math.max(-option.support, 0), true)}
+                                {/*{makePaddingTicks(Math.max(-option.support, 0), true)}*/}
                             </div>
-                            <div className="option-card" style={{ ...optionStyle, backdropFilter: 'none', display: 'flex', flexDirection: 'row', flex: 1 + bfAgainst + bfFor, transition: flexTransition }}>
+                            <div className="option-card" style={{ ...optionStyle, backdropFilter, display: 'flex', flexDirection: 'row', flex: 1 + bfAgainst + bfFor, transition: flexTransition }}>
                                 <div className="support-bar" style={{ flex: bfAgainst, alignSelf: 'stretch', overflow: 'hidden', display: 'flex', flexDirection: 'row-reverse', transition: flexTransition }}>
                                     {makeTicks(true)}
                                 </div>
-                                <div className="card-center" style={{ display: 'flex', flexDirection: 'row', flex: 1, padding: '8px 0', backdropFilter }}>
+                                <div className="card-center" style={{ display: 'flex', flexDirection: 'row', flex: 1 }}>
                                     <button
                                         className="vote-button"
                                         style={{ ...buttonStyle, flex: '0 0 auto' }}
@@ -135,7 +132,7 @@ function App() {
                                 </div>
                             </div>
                             <div style={{ flex: 1 - bfFor, transition: flexTransition, display: 'flex', flexDirection: 'row', overflow: 'hidden', alignItems: 'stretch' }}>
-                                {makePaddingTicks(Math.max(option.support, 0), false)}
+                                {/*{makePaddingTicks(Math.max(option.support, 0), false)}*/}
                             </div>
                         </div>,
                         <div key={`voters-${option.name}`} className="voter-row" style={{ marginBottom: 12 }}>
@@ -159,36 +156,42 @@ function App() {
                         </div>,
                     ];
                 })}
-            </div>
-            <div className="control-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-                <div style={{ ...optionStyle, borderRadius: 8, display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4, padding: '6px 6px 6px 12px' }}>
-                    <input
-                        type="text"
-                        value={state.toAdd}
-                        placeholder="New option"
-                        onChange={(e) => actions.setToAdd(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && state.toAdd.trim()) {
-                                actions.addOption({ at: Date.now(), name: state.toAdd.trim(), messageId: v4() });
-                                actions.setToAdd("");
-                            }
-                        }}
-                        style={{ backgroundColor: `rgb(${shadow},0.1)`, border: 0, borderRadius: 5, boxShadow: `inset 0px 1px 3px rgb(${shadow},0.5)`, padding: 10, fontFamily: "'Inter Tight', system-ui, sans-serif", fontSize: 16, outline: 'none', color: 'inherit', width: 200 }}
-                    />
-                    <button
-                        className="vote-button"
-                        disabled={!state.toAdd.trim()}
-                        style={buttonStyle}
-                        onClick={() => {
-                            if (state.toAdd.trim()) {
-                                actions.addOption({ at: Date.now(), name: state.toAdd.trim(), messageId: v4() });
-                                actions.setToAdd("");
-                            }
-                        }}
-                    >{"\uf055"}</button>
+                <div className="control-panel" style={{ display: 'flex', flexDirection: 'row', width: '100%' }}>
+                    <div style={{ flex: 1 }} />
+                    <div style={{ ...optionStyle, boxShadow: recessedPanelShadow, backdropFilter: recessedBackdropFilter, flex: 1, display: 'flex', flexDirection: 'row', alignItems: 'stretch' }}>
+                        <div style={{ aspectRatio: '1', flex: '0 0 auto' }} />
+                        <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
+                            <input
+                                type="text"
+                                value={state.toAdd}
+                                placeholder="New option"
+                                onChange={(e) => actions.setToAdd(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && state.toAdd.trim()) {
+                                        actions.addOption({ at: Date.now(), name: state.toAdd.trim(), messageId: v4() });
+                                        actions.setToAdd("");
+                                    }
+                                }}
+                                style={{ flex: 1, minWidth: 0, background: 'none', border: 0, padding: 10, fontFamily: "'Inter Tight', system-ui, sans-serif", fontSize: 16, outline: 'none', color: 'inherit', textAlign: 'center' }}
+                            />
+                        </div>
+                        <button
+                            className="vote-button"
+                            disabled={!state.toAdd.trim()}
+                            style={buttonStyle}
+                            onClick={() => {
+                                if (state.toAdd.trim()) {
+                                    actions.addOption({ at: Date.now(), name: state.toAdd.trim(), messageId: v4() });
+                                    actions.setToAdd("");
+                                }
+                            }}
+                        >{"\uf055"}</button>
+                    </div>
+                    <div style={{ flex: 1 }} />
                 </div>
-                <button onClick={() => actions.clear()}>Clear</button>
             </div>
+            
+            <button onClick={() => actions.clear()}>Clear</button>
 
         </AppBackground>
     );

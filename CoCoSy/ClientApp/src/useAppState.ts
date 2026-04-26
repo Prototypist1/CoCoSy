@@ -3,7 +3,7 @@ import * as signalR from "@microsoft/signalr";
 import { v4 } from 'uuid';
 import { getCookie, setCookie, voterId } from './cookies';
 import {
-    State, Yolo, Vote, VoteAction, SetNameAction, AddOptionAction,
+    State, Yolo, Vote, VoteAction, SetNameAction, AddOptionAction, SetGameNameAction,
     VotesSubState, NamesSubState, Messages, Hello
 } from './types';
 
@@ -90,11 +90,17 @@ function buildVotesState(votesAdded: VoteAction[], optionsAdded: AddOptionAction
     return { options: Array.from(optionMap.values()), time: now };
 }
 
+function buildGameName(gameNames: SetGameNameAction[]): string {
+    return gameNames.reduce<SetGameNameAction | null>((best, g) =>
+        g.at > (best?.at ?? -Infinity) ? g : best, null)?.name ?? '';
+}
+
 function buildNetworkState(messages: Messages, last: State): State {
     return {
         ...last,
         ...buildVotesState(Array.from(messages.votes.values()), Array.from(messages.options.values())),
         ...buildNamesState(Array.from(messages.namings.values())),
+        gameName: buildGameName(Array.from(messages.gameNames.values())),
     };
 }
 
@@ -104,6 +110,7 @@ const initialState: State = {
     options: [],
     toAdd: "",
     yourName: getCookie('playerName'),
+    gameName: '',
     time: Date.now(),
     players: new Map<string, string>(),
 };
@@ -121,7 +128,7 @@ export const gameId = getOrCreateGameId();
 export const useAppState = () => {
     const [state, dispatch] = useReducer(reducer, initialState);
 
-    const { vote, setName, addOption, refresh } = useMemo(() => {
+    const { vote, setName, addOption, setGameName, refresh } = useMemo(() => {
         const connection = new signalR.HubConnectionBuilder()
             .withUrl(`https://localhost:7277/relayhub?gameId=${gameId}`, {
                 withCredentials: false,
@@ -137,6 +144,7 @@ export const useAppState = () => {
             votes: new Map<string, VoteAction>(),
             namings: new Map<string, SetNameAction>(),
             options: new Map<string, AddOptionAction>(),
+            gameNames: new Map<string, SetGameNameAction>(),
         };
 
         connection.on("VoteAction", (action) => {
@@ -157,12 +165,19 @@ export const useAppState = () => {
                 dispatch(last => buildNetworkState(messages, last));
             }
         });
+        connection.on("SetGameNameAction", (action) => {
+            if (messages.gameNames.get(action.messageId) === undefined) {
+                messages.gameNames.set(action.messageId, action);
+                dispatch(last => buildNetworkState(messages, last));
+            }
+        });
 async function start() {
             try {
                 await connection.start();
 messages.votes = new Map<string, VoteAction>();
                 messages.namings = new Map<string, SetNameAction>();
                 messages.options = new Map<string, AddOptionAction>();
+                messages.gameNames = new Map<string, SetGameNameAction>();
                 const hello: Hello = {};
                 await connection.invoke("Hello", hello);
                 const name = getCookie('playerName');
@@ -200,6 +215,13 @@ messages.votes = new Map<string, VoteAction>();
                     console.error("could not invoke AddOptionAction", error);
                 }
             },
+            setGameName: async (action: SetGameNameAction) => {
+                try {
+                    await connection.invoke("SetGameNameAction", action);
+                } catch (error) {
+                    console.error("could not invoke SetGameNameAction", error);
+                }
+            },
             refresh: () => dispatch(last => buildNetworkState(messages, last)),
         };
     }, []);
@@ -215,6 +237,7 @@ messages.votes = new Map<string, VoteAction>();
             vote,
             setName,
             addOption,
+            setGameName,
             setToAdd: (value: string) => dispatch(last => ({ ...last, toAdd: value })),
             setYourName: (value: string) => {
                 setCookie('playerName', value);

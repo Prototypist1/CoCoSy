@@ -37,20 +37,25 @@ body {
     outline: none;
 }
 
-.vote-button:focus, .vote-button:focus-visible, .vote-button:hover {
+.icon-button:focus, .icon-button:focus-visible, .icon-button:hover {
     color: rgb(255,255,255) !important;
 }
 
-.vote-button.dark:focus, .vote-button.dark:focus-visible, .vote-button.dark:hover {
+.icon-button.dark:focus, .icon-button.dark:focus-visible, .icon-button.dark:hover {
     color: #333 !important;
 }
 
 /* suppress webkits ungly focus ring*/
-.vote-button:focus-visible {
+.icon-button:focus-visible {
     outline: none;
 }
 
-.vote-button:active {
+.icon-button:disabled {
+    color: rgba(200,200,200,0.95) !important;
+    cursor: default;
+}
+
+.icon-button:active {
     transform: scale(0.99);
     text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6) !important, 0 0 10px rgba(255, 255, 255, 0.2);
     transition: transform 0.05s, text-shadow 0.05s;

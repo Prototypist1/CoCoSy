@@ -23,6 +23,7 @@ export type State = {
     options: Yolo[],
     toAdd: string,
     yourName: string,
+    gameName: string,
     time: number,
     players: Map<string, string>,
 }
@@ -50,10 +51,17 @@ export type AddOptionAction = {
     messageId: string,
 }
 
+export type SetGameNameAction = {
+    name: string,
+    at: number,
+    messageId: string,
+}
+
 export type Hello = {}
 
 export type Messages = {
     votes: Map<string, VoteAction>,
     namings: Map<string, SetNameAction>,
     options: Map<string, AddOptionAction>,
+    gameNames: Map<string, SetGameNameAction>,
 }

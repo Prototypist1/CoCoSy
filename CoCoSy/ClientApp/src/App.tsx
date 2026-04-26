@@ -1,19 +1,21 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import './App.css';
 import { v4 } from 'uuid';
-import { useAppState } from './useAppState';
+import { useAppState, gameId } from './useAppState';
 import { getCookie, voterId } from './cookies';
 import { AppBackground } from './AppBackground';
 import { NameEntryPage } from './NameEntryPage';
 import { VoterChip } from './VoterChip';
+import { IconButton } from './IconButton';
+import { TextEntry } from './TextEntry';
 import {
     optionStyle, buttonStyle, fadingDividerOuter, fadingDividerInner,
-    flexTransition, widthTransition, shadow, glow, primaryOpacity, secondaryOpacity, primaryTextGlow, secondaryTextGlow, backdropFilter, halfBackdropFilter, recessedBackdropFilter, nintyBackdropFilter, recessedPanelShadow,
+    flexTransition, widthTransition, shadow, glow, primaryOpacity, secondaryOpacity, primaryTextGlow, secondaryTextGlow, backdropFilter, halfBackdropFilter, nintyBackdropFilter, overlayBackdropFilter, overlayShadow, overlayTopGradient, overlayBotGradient,
 } from './theme';
 import { Vote } from './types';
+import { getRecentGames, RecentGame, touchGame, updateTopOption, updateGameName } from './recentGames';
 
-const popupShadow = '0 4px 16px rgba(0,0,0,0.3)';
 
 function consolidate(votes: Vote[]): [string, number][] {
     const counts = new Map<string, number>();
@@ -35,8 +37,28 @@ function CanRetractVote(otherSideVotes: Vote[]): string | undefined {
 function App() {
     const { state, actions } = useAppState();
     const [nameConfirmed, setNameConfirmed] = useState(getCookie('playerName') !== '');
-    const [showInvite, setShowInvite] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
+    const [pendingName, setPendingName] = useState(state.yourName);
+    const [recentGames, setRecentGames] = useState<RecentGame[]>(() => {
+        touchGame(gameId);
+        return getRecentGames();
+    });
+
+    useEffect(() => {
+        const top = state.options.reduce<{ name: string, support: number } | null>((best, o) =>
+            o.support > (best?.support ?? -Infinity) ? { name: o.name, support: o.support } : best, null);
+        updateTopOption(gameId, top?.name ?? null);
+        setRecentGames(getRecentGames());
+    }, [state.options]);
+
+    useEffect(() => {
+        setPendingName(state.yourName);
+    }, [state.yourName]);
+
+    useEffect(() => {
+        updateGameName(gameId, state.gameName);
+        setRecentGames(getRecentGames());
+    }, [state.gameName]);
 
     if (!nameConfirmed) {
         return <NameEntryPage onConfirm={(name) => {
@@ -61,7 +83,7 @@ function App() {
     }
 
     return (
-        <AppBackground>
+        <AppBackground gameName={state.gameName} onSetGameName={name => actions.setGameName({ at: Date.now(), name, messageId: v4() })}>
             <div style={{ width: '100%' }}>
                 {state.options.map(option => {
                     const bf = barFlex(option.support);
@@ -104,33 +126,27 @@ function App() {
                                 <div className="support-bar" style={{ flex: bfAgainst, alignSelf: 'stretch', overflow: 'hidden', display: 'flex', flexDirection: 'row-reverse', transition: flexTransition }}>
                                     {makeTicks(true)}
                                 </div>
-                                <div className="card-center" style={{ display: 'flex', flexDirection: 'row', flex: 1 }}>
-                                    <button
-                                        className="vote-button"
-                                        style={{ ...buttonStyle, flex: '0 0 auto' }}
-                                        onClick={() => {
+                                <div className="card-center" style={{ display: 'flex', flexDirection: 'row', flex: 1, minWidth: 0 }}>
+                                    <IconButton icon={"\uf137"} style={{ flex: '0 0 auto' }} onClick={() => {
                                             const retractVote = CanRetractVote(option.supporters);
                                             if (retractVote !== undefined) {
                                                 actions.vote({ at: Date.now(), optionName: option.name, support: true, voterId, messageId: v4(), voteId: retractVote, add: false });
                                             } else {
                                                 actions.vote({ at: Date.now(), optionName: option.name, support: false, voterId, messageId: v4(), voteId: v4(), add: true });
                                             }
-                                        }}>{"\uf137"}</button>
+                                        }} />
                                     <div className="option-label" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%', fontSize: 20, fontWeight: 400, opacity: primaryOpacity, textShadow: primaryTextGlow }}>{option.name}</span>
                                         <span style={{ fontSize: '0.75em', fontWeight: 400, opacity: secondaryOpacity, textShadow: secondaryTextGlow }}>{(option.support ?? 0).toFixed(2)}</span>
                                     </div>
-                                    <button
-                                        className="vote-button"
-                                        style={{ ...buttonStyle, flex: '0 0 auto' }}
-                                        onClick={() => {
+                                    <IconButton icon={"\uf138"} style={{ flex: '0 0 auto' }} onClick={() => {
                                             const retractVote = CanRetractVote(option.againsts);
                                             if (retractVote !== undefined) {
                                                 actions.vote({ at: Date.now(), optionName: option.name, support: false, voterId, messageId: v4(), voteId: retractVote, add: false });
                                             } else {
                                                 actions.vote({ at: Date.now(), optionName: option.name, support: true, voterId, messageId: v4(), voteId: v4(), add: true });
                                             }
-                                        }}>{"\uf138"}</button>
+                                        }} />
                                 </div>
                                 <div className="support-bar" style={{ flex: bfFor, alignSelf: 'stretch', overflow: 'hidden', display: 'flex', flexDirection: 'row', transition: flexTransition }}>
                                     {makeTicks(false)}
@@ -163,88 +179,53 @@ function App() {
                 })}
                 <div className="control-panel" style={{ display: 'flex', flexDirection: 'row', width: '100%' }}>
                     <div style={{ flex: 1 }} />
-                    <div className="recessed-container" style={{ ...optionStyle, boxShadow: recessedPanelShadow, backdropFilter: recessedBackdropFilter, flex: 1, display: 'flex', flexDirection: 'row', alignItems: 'stretch' }}>
-                        <div style={{ aspectRatio: '1', flex: '0 0 auto' }} />
-                        <div style={{ flex: 1, minWidth: 0, alignItems: 'stretch', display: 'flex' }}>
-                            <input
-                                type="text"
-                                value={state.toAdd}
-                                placeholder="New option"
-                                onChange={(e) => actions.setToAdd(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && state.toAdd.trim()) {
-                                        actions.addOption({ at: Date.now(), name: state.toAdd.trim(), messageId: v4() });
-                                        actions.setToAdd("");
-                                    }
-                                }}
-                                style={{ flex: 1, minWidth: 0, background: 'none', border: 0, fontFamily: "'Inter Tight', system-ui, sans-serif", fontSize: 16, outline: 'none', color: 'inherit', textAlign: 'center' }}
-                            />
-                        </div>
-                        <button
-                            className="vote-button"
-                            disabled={!state.toAdd.trim()}
-                            style={buttonStyle}
-                            onClick={() => {
-                                if (state.toAdd.trim()) {
-                                    actions.addOption({ at: Date.now(), name: state.toAdd.trim(), messageId: v4() });
-                                    actions.setToAdd("");
-                                }
-                            }}
-                        >{"\uf055"}</button>
-                    </div>
+                    <TextEntry
+                        value={state.toAdd}
+                        onChange={actions.setToAdd}
+                        onCommit={name => { actions.addOption({ at: Date.now(), name, messageId: v4() }); actions.setToAdd(""); }}
+                        placeholder="New option"
+                        icon={"\uf055"}
+                        style={{ flex: 1 }}
+                    />
                     <div style={{ flex: 1 }} />
                 </div>
             </div>
             
-            {showInvite && (
-                <div style={{ position: 'fixed', top: 24, right: 24, backgroundColor: 'white', borderRadius: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: popupShadow, zIndex: 100 }}>
-                    <button
-                        className="vote-button dark"
-                        style={{ color: '#333', fontSize: 16, backgroundColor: 'rgba(0,0,0,0)', padding: '8px 16px', border: 0, alignSelf: 'flex-end' }}
-                        onClick={() => setShowInvite(false)}
-                    >✕</button>
-                    <div style={{ padding: '0px 16px' }}>
-                        <QRCodeSVG value={window.location.href} size={180} />
-                    </div>
-                    <button
-                        className="vote-button dark"
-                        style={{ ...buttonStyle, color: '#333', textShadow: 'none', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6, aspectRatio: 'unset', width: '100%', justifyContent: 'center', paddingTop: '8px', paddingBottom: '16px' }}
-                        onClick={() => navigator.clipboard.writeText(window.location.href)}
-                    >
-                        <span style={{ fontFamily: "'Inter Tight', system-ui, sans-serif", fontSize: 13 }}>Copy link</span>
-                        <span style={{ fontFamily: 'font-awesome', fontSize: 16, lineHeight: 1 }}>{"\uf0c5"}</span>
-                    </button>
-                </div>
-            )}
-            {!showInvite && (
-
-                <button
-                    className="vote-button dark"
-                    style={{ ...buttonStyle, ...optionStyle, position: 'fixed', top: 24, right: 24, borderRadius: 8, display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8, aspectRatio: 'unset', padding: '8px 16px', backgroundColor: 'rgba(255,255,255,0.95)', color: '#333', textShadow: 'none' }}
-                    onClick={() => setShowInvite(v => !v)}
-                    title="Invite"
-                >
-                    <span style={{ fontFamily: "'Inter Tight', system-ui, sans-serif", fontSize: 16 }}>Invite</span>
-                    <span style={{ fontFamily: 'font-awesome', fontSize: 16, lineHeight: 1 }}>{"\uf029"}</span>
-                </button>)
-            }
-
-            <button
-                className="vote-button dark"
-                style={{ ...buttonStyle, ...optionStyle, position: 'fixed', top: 24, left: 24, borderRadius: 8, aspectRatio: 'unset', padding: '8px 16px', backgroundColor: 'rgba(255,255,255,0.95)', color: '#333', textShadow: 'none' }}
-                onClick={() => setShowMenu(v => !v)}
-                title="Menu"
-            >
-                <span style={{ fontFamily: 'font-awesome', fontSize: 16, lineHeight: 1 }}>{"\uf0c9"}</span>
-            </button>
+            <IconButton icon={"\uf0c9"} style={{ position: 'fixed', top: 0, left: 0, zIndex: 201 }} onClick={() => setShowMenu(v => !v)} title="Menu" />
 
             {showMenu && (
-                <div style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: 280, zIndex: 200, backgroundColor: 'rgba(255,255,255,0.95)', boxShadow: popupShadow, display: 'flex', flexDirection: 'column', padding: 24, gap: 16 }}>
-                    <button
-                        className="vote-button dark"
-                        style={{ color: '#333', fontSize: 16, background: 'none', border: 0, alignSelf: 'flex-end', cursor: 'pointer' }}
-                        onClick={() => setShowMenu(false)}
-                    >✕</button>
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, bottom: 0, width: 280, zIndex: 200, boxShadow: overlayShadow, background: `linear-gradient(179.7deg, rgb(${overlayTopGradient},1) 0%, rgb(${overlayBotGradient},1) 100%)`, display: 'flex', flexDirection: 'column', padding: 24, gap: 16, overflowY: 'auto', fontFamily: "'Inter Tight', system-ui, sans-serif", color: '#333' }}>
+                    <div style={{ height: 44 }} />
+                    <span style={{ fontSize: 12, fontWeight: 600, opacity: secondaryOpacity, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Set Name</span>
+                    <TextEntry
+                        value={pendingName}
+                        onChange={setPendingName}
+                        onCommit={name => { actions.setYourName(name); actions.setName({ at: Date.now(), name, voterId, messageId: v4() }); }}
+                        placeholder="Your name"
+                        icon={"\uf058"}
+                    />
+                    <span style={{ fontSize: 12, fontWeight: 600, opacity: secondaryOpacity, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Scan to Join</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                        <QRCodeSVG value={window.location.href} size={180} />
+                        <IconButton dark style={{ color: '#333', textShadow: 'none', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6, aspectRatio: 'unset', justifyContent: 'center', paddingTop: '4px', paddingBottom: '4px' }} onClick={() => navigator.clipboard.writeText(window.location.href)}>
+                            <span style={{ fontFamily: "'Inter Tight', system-ui, sans-serif", fontSize: 13 }}>Copy link</span>
+                            <span style={{ fontFamily: 'font-awesome', fontSize: 16, lineHeight: 1 }}>{"\uf0c5"}</span>
+                        </IconButton>
+                    </div>
+                    <span style={{ fontSize: 12, fontWeight: 600, opacity: secondaryOpacity, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Recent Rounds</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {recentGames.map(g => (
+                            <a
+                                key={g.id}
+                                href={`/${g.id}`}
+                                style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 12px', borderRadius: 8, backgroundColor: g.id === gameId ? 'rgba(0,0,0,0.08)' : 'transparent', textDecoration: 'none', color: '#333' }}
+                            >
+                                <span style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', opacity: primaryOpacity, textShadow: primaryTextGlow }}>{g.gameName ?? g.topOption ?? '(empty game)'}</span>
+                                <span style={{ fontSize: 11, opacity: secondaryOpacity, textShadow: secondaryTextGlow }}>{new Date(g.firstAccessed).toLocaleDateString()}</span>
+                            </a>
+                        ))}
+                    </div>
                 </div>
             )}
 

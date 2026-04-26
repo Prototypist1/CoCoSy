@@ -3,12 +3,21 @@ import { CSSProperties } from 'react';
 export const glow = "255, 255, 255";
 export const topGradient = "238, 220, 206";
 export const botGradient = "126, 157, 143";
+// topGradient with overlayBackdropFilter applied
+// you can't have Backdrop Filter on a parent and it's child
+// the sidebar has elements with backdrop filters
+// so we fake the parent 
+export const overlayTopGradient = "255, 241, 242";
+export const overlayBotGradient = "153, 177, 149";
+
 export const shadow = "0, 0, 0";
+export const overlayBackdropFilter = "hue-rotate(-35deg) saturate(107%) brightness(112%) blur(10px)";
 export const backdropFilter = "hue-rotate(-30deg) saturate(105%) brightness(110%) blur(10px)";
 export const nintyBackdropFilter = "hue-rotate(-21deg) saturate(104%) brightness(107%) blur(10px)";
 export const halfBackdropFilter = "hue-rotate(-15deg) saturate(102.5%) brightness(105%) blur(10px)";
 export const recessedBackdropFilter = "hue-rotate(15deg) saturate(97.5%) brightness(95%) blur(10px)";
 
+export const overlayShadow = `inset 0px 1px 4px rgb(${glow},0.5), 0px 3px 10px rgb(${shadow},0.2), 0px 1px 2px rgb(${shadow},0.35)`;
 export const panelShadow = `inset 0px 1px 4px rgb(${glow},0.5), 0px 2px 7px rgb(${shadow},0.3), 0px 1px 2px rgb(${shadow},0.5)`;
 export const halfPanelShadow = `inset 0px 1px 4px rgb(${glow},0.5), 0px 1px 3px rgb(${shadow},0.65), 0px 1px 1px rgb(${shadow},0.75)`;
 // really half recessedPanelShadow
@@ -47,6 +56,8 @@ export const buttonStyle: CSSProperties = {
     fontSize: '30px',
     background: 'none',
     border: 'none',
+    appearance: 'none',
+    WebkitAppearance: 'none',
     cursor: 'pointer',
     padding: buttonPadding,
     borderRadius: buttonPadding,

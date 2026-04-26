@@ -9,6 +9,7 @@ namespace CoCoSy.Hubs
         public List<VoteAction> Votes { get; set; } = new();
         public List<SetNameAction> Names { get; set; } = new();
         public List<AddOptionAction> Options { get; set; } = new();
+        public List<SetGameNameAction> GameNames { get; set; } = new();
     }
 
     public class BlobGameStore
@@ -89,6 +90,7 @@ namespace CoCoSy.Hubs
                 Votes = state.Votes.ToList(),
                 Names = state.Names.ToList(),
                 Options = state.Options.ToList(),
+                GameNames = state.GameNames.ToList(),
             };
             var json = JsonSerializer.Serialize(stored);
             await _container.GetBlobClient($"{gameId}.json")
@@ -130,6 +132,7 @@ namespace CoCoSy.Hubs
                 foreach (var name in stored.Names) { state.Names.Add(name); }
                 foreach (var option in stored.Options) { state.Options.Add(option); }
                 foreach (var vote in stored.Votes) { state.Votes.Add(vote); }
+                foreach (var gameName in stored.GameNames) { state.GameNames.Add(gameName); }
 
                 taskCompletionSource.SetResult(state);
                 return state;

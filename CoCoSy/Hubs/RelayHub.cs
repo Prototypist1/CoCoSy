@@ -9,6 +9,7 @@ namespace CoCoSy.Hubs
         public ConcurrentLinkedList<VoteAction> Votes = new();
         public ConcurrentLinkedList<SetNameAction> Names = new();
         public ConcurrentLinkedList<AddOptionAction> Options = new();
+        public ConcurrentLinkedList<SetGameNameAction> GameNames = new();
     }
 
     public class RelayHub : Hub
@@ -64,6 +65,14 @@ namespace CoCoSy.Hubs
             _store.MarkForSave(GameId());
         }
 
+        public async Task SetGameNameAction(SetGameNameAction action)
+        {
+            var game = await _store.GetGame(GameId());
+            game.GameNames.Add(action);
+            await Clients.Group(GameGroup()).SendAsync("SetGameNameAction", action);
+            _store.MarkForSave(GameId());
+        }
+
         public async Task Hello(Hello _)
         {
             var game = await _store.GetGame(GameId());
@@ -73,6 +82,8 @@ namespace CoCoSy.Hubs
                 await Clients.Caller.SendAsync("AddOptionAction", option);
             foreach (var vote in game.Votes)
                 await Clients.Caller.SendAsync("VoteAction", vote);
+            foreach (var gameName in game.GameNames)
+                await Clients.Caller.SendAsync("SetGameNameAction", gameName);
         }
     }
 
@@ -96,6 +107,13 @@ namespace CoCoSy.Hubs
     }
 
     public class AddOptionAction
+    {
+        public string name { get; set; }
+        public double at { get; set; }
+        public string messageId { get; set; }
+    }
+
+    public class SetGameNameAction
     {
         public string name { get; set; }
         public double at { get; set; }

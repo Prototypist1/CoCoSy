@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "storage1": {
+      "serviceConnectorResourceId": "/subscriptions/[parameters('subscriptionId')]/resourcegroups/[parameters('serviceConnectorResourceGroupName')]/providers/Microsoft.Web/sites/CoCoSy/providers/Microsoft.ServiceLinker/linkers/StorageConnection_BFE2DC3644, /subscriptions/29dc30b9-26cf-4206-80b1-2b0f633d0445/resourcegroups/CoCoSy/providers/Microsoft.Web/sites/CoCoSy/providers/Microsoft.ServiceLinker/linkers/StorageConnection_6D4AF7C32A",
+      "secretStore": "AzureAppSettings",
+      "resourceId": "/subscriptions/[parameters('subscriptionId')]/resourceGroups/[parameters('resourceGroupName')]/providers/Microsoft.Storage/storageAccounts/cocosy",
+      "type": "storage.azure",
+      "connectionId": "StorageConnection",
+      "dynamicId": null
+    }
+  }
+}

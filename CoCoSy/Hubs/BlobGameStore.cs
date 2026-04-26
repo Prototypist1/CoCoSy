@@ -27,7 +27,7 @@ namespace CoCoSy.Hubs
         public BlobGameStore(IConfiguration config, ILogger<BlobGameStore> logger)
         {
             _logger = logger;
-            var connectionString = config["BlobConnectionString"];
+            var connectionString = config["StorageConnection"];
             var client = new BlobServiceClient(connectionString);
             _container = client.GetBlobContainerClient("games");
             _container.CreateIfNotExists();

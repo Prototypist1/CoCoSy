@@ -4,7 +4,7 @@ import { v4 } from 'uuid';
 import { getCookie, setCookie, voterId } from './cookies';
 import {
     State, Yolo, Vote, VoteAction, SetNameAction, AddOptionAction,
-    VotesSubState, NamesSubState, Messages, Hello, Clear
+    VotesSubState, NamesSubState, Messages, Hello
 } from './types';
 
 function getUniqueStrings(list: string[]): string[] {
@@ -121,7 +121,7 @@ export const gameId = getOrCreateGameId();
 export const useAppState = () => {
     const [state, dispatch] = useReducer(reducer, initialState);
 
-    const { vote, setName, addOption, refresh, clear } = useMemo(() => {
+    const { vote, setName, addOption, refresh } = useMemo(() => {
         const connection = new signalR.HubConnectionBuilder()
             .withUrl(`https://localhost:7277/relayhub?gameId=${gameId}`, {
                 withCredentials: false,
@@ -140,39 +140,27 @@ export const useAppState = () => {
         };
 
         connection.on("VoteAction", (action) => {
-            console.log("got VoteAction message", action);
             if (messages.votes.get(action.messageId) === undefined) {
                 messages.votes.set(action.messageId, action);
                 dispatch(last => buildNetworkState(messages, last));
             }
         });
         connection.on("SetNameAction", (action) => {
-            console.log("got SetNameAction message", action);
             if (messages.namings.get(action.messageId) === undefined) {
                 messages.namings.set(action.messageId, action);
                 dispatch(last => buildNetworkState(messages, last));
             }
         });
         connection.on("AddOptionAction", (action) => {
-            console.log("got AddOptionAction message", action);
             if (messages.options.get(action.messageId) === undefined) {
                 messages.options.set(action.messageId, action);
                 dispatch(last => buildNetworkState(messages, last));
             }
         });
-        connection.on("Clear", () => {
-            console.log("got Clear message");
-            messages.votes = new Map<string, VoteAction>();
-            messages.namings = new Map<string, SetNameAction>();
-            messages.options = new Map<string, AddOptionAction>();
-            dispatch(last => buildNetworkState(messages, last));
-        });
-
-        async function start() {
+async function start() {
             try {
                 await connection.start();
-                console.log("SignalR Connected.");
-                messages.votes = new Map<string, VoteAction>();
+messages.votes = new Map<string, VoteAction>();
                 messages.namings = new Map<string, SetNameAction>();
                 messages.options = new Map<string, AddOptionAction>();
                 const hello: Hello = {};
@@ -192,7 +180,6 @@ export const useAppState = () => {
 
         return {
             vote: async (action: VoteAction) => {
-                console.log("sending VoteAction", action);
                 try {
                     await connection.invoke("VoteAction", action);
                 } catch (error) {
@@ -200,7 +187,6 @@ export const useAppState = () => {
                 }
             },
             setName: async (action: SetNameAction) => {
-                console.log("sending SetNameAction", action);
                 try {
                     await connection.invoke("SetNameAction", action);
                 } catch (error) {
@@ -208,7 +194,6 @@ export const useAppState = () => {
                 }
             },
             addOption: async (action: AddOptionAction) => {
-                console.log("sending AddOptionAction", action);
                 try {
                     await connection.invoke("AddOptionAction", action);
                 } catch (error) {
@@ -216,15 +201,6 @@ export const useAppState = () => {
                 }
             },
             refresh: () => dispatch(last => buildNetworkState(messages, last)),
-            clear: async () => {
-                console.log("clearing");
-                try {
-                    const clear: Clear = {};
-                    await connection.invoke("Clear", clear);
-                } catch (error) {
-                    console.error("could not invoke Clear", error);
-                }
-            },
         };
     }, []);
 
@@ -239,7 +215,6 @@ export const useAppState = () => {
             vote,
             setName,
             addOption,
-            clear,
             setToAdd: (value: string) => dispatch(last => ({ ...last, toAdd: value })),
             setYourName: (value: string) => {
                 setCookie('playerName', value);

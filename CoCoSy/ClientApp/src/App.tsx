@@ -13,6 +13,8 @@ import {
 } from './theme';
 import { Vote } from './types';
 
+const popupShadow = '0 4px 16px rgba(0,0,0,0.3)';
+
 function consolidate(votes: Vote[]): [string, number][] {
     const counts = new Map<string, number>();
     for (const vote of votes) {
@@ -34,6 +36,7 @@ function App() {
     const { state, actions } = useAppState();
     const [nameConfirmed, setNameConfirmed] = useState(getCookie('playerName') !== '');
     const [showInvite, setShowInvite] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
 
     if (!nameConfirmed) {
         return <NameEntryPage onConfirm={(name) => {
@@ -193,10 +196,8 @@ function App() {
                 </div>
             </div>
             
-            <button onClick={() => actions.clear()}>Clear</button>
-
             {showInvite && (
-                <div style={{ position: 'fixed', top: 24, right: 24, backgroundColor: 'white', borderRadius: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.3)', zIndex: 100 }}>
+                <div style={{ position: 'fixed', top: 24, right: 24, backgroundColor: 'white', borderRadius: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: popupShadow, zIndex: 100 }}>
                     <button
                         className="vote-button dark"
                         style={{ color: '#333', fontSize: 16, backgroundColor: 'rgba(0,0,0,0)', padding: '8px 16px', border: 0, alignSelf: 'flex-end' }}
@@ -223,10 +224,29 @@ function App() {
                     onClick={() => setShowInvite(v => !v)}
                     title="Invite"
                 >
-                    <span style={{ fontFamily: 'font-awesome', fontSize: 16, lineHeight: 1 }}>{"\uf029"}</span>
                     <span style={{ fontFamily: "'Inter Tight', system-ui, sans-serif", fontSize: 16 }}>Invite</span>
+                    <span style={{ fontFamily: 'font-awesome', fontSize: 16, lineHeight: 1 }}>{"\uf029"}</span>
                 </button>)
             }
+
+            <button
+                className="vote-button dark"
+                style={{ ...buttonStyle, ...optionStyle, position: 'fixed', top: 24, left: 24, borderRadius: 8, aspectRatio: 'unset', padding: '8px 16px', backgroundColor: 'rgba(255,255,255,0.95)', color: '#333', textShadow: 'none' }}
+                onClick={() => setShowMenu(v => !v)}
+                title="Menu"
+            >
+                <span style={{ fontFamily: 'font-awesome', fontSize: 16, lineHeight: 1 }}>{"\uf0c9"}</span>
+            </button>
+
+            {showMenu && (
+                <div style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: 280, zIndex: 200, backgroundColor: 'rgba(255,255,255,0.95)', boxShadow: popupShadow, display: 'flex', flexDirection: 'column', padding: 24, gap: 16 }}>
+                    <button
+                        className="vote-button dark"
+                        style={{ color: '#333', fontSize: 16, background: 'none', border: 0, alignSelf: 'flex-end', cursor: 'pointer' }}
+                        onClick={() => setShowMenu(false)}
+                    >✕</button>
+                </div>
+            )}
 
         </AppBackground>
     );

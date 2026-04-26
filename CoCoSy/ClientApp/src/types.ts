@@ -51,7 +51,6 @@ export type AddOptionAction = {
 }
 
 export type Hello = {}
-export type Clear = {}
 
 export type Messages = {
     votes: Map<string, VoteAction>,

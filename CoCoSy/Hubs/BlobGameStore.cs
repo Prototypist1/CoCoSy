@@ -13,15 +13,15 @@ namespace CoCoSy.Hubs
 
     public class BlobGameStore
     {
+        // never evited for now
         private ConcurrentDictionary<Guid, Task<GameState>> games = new();
 
         private readonly BlobContainerClient _container;
         private readonly ILogger<BlobGameStore> _logger;
 
         private ConcurrentDictionary<Guid, Guid> toSave = new();
-        // 0 - not running
-        // 1 - running
-        private int nextSave = 0;
+
+        private object? nextSave = null;
 
         public BlobGameStore(IConfiguration config, ILogger<BlobGameStore> logger)
         {
@@ -35,38 +35,44 @@ namespace CoCoSy.Hubs
         public void MarkForSave(Guid gameId)
         {
             toSave.TryAdd(gameId, gameId);
-            if (Interlocked.CompareExchange(ref nextSave, 1, 0) == 0) {
-                Task.Run(async () =>
-                {
-                    try
-                    {
-                        await SaveLoopAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "SaveLoop failed");
-                    }
-                });
+            var ourObject = new object();
+            if (Interlocked.CompareExchange(ref nextSave, ourObject,  null) == null)
+            {
+                Task.Run(async () => await SaveLoopAsync(ourObject));
             }
         }
 
-        private async Task SaveLoopAsync()
+        private async Task SaveLoopAsync(object ourObject)
         {
-            while (true)
+            try
             {
-                await Task.Delay(TimeSpan.FromMinutes(1));
-                nextSave = 0;
-                var toSaveNow = Interlocked.Exchange(ref toSave, new ConcurrentDictionary<Guid, Guid>());
-                foreach (var gameId in toSaveNow)
+                while (true)
                 {
-                    await InnerSaveAsync(gameId.Key);
-                }
+                    await Task.Delay(TimeSpan.FromMinutes(1));
+                    nextSave = null;
+                    var toSaveNow = Interlocked.Exchange(ref toSave, new ConcurrentDictionary<Guid, Guid>());
+                    foreach (var gameId in toSaveNow)
+                    {
+                        await InnerSaveAsync(gameId.Key);
+                    }
 
-                // if someone else took the lock don't try agian
-                if (Interlocked.CompareExchange(ref nextSave, 1, 0) != 0)
-                {
-                    return;
+                    // stop if you didn't save anything
+                    if (toSave.IsEmpty)
+                    {
+                        return;
+                    }
+
+                    // if someone else took the lock don't try agian
+                    if (Interlocked.CompareExchange(ref nextSave, ourObject, null) !=  null)
+                    {
+                        return;
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                Interlocked.CompareExchange(ref nextSave, null, ourObject);
+                _logger.LogError(ex, "SaveLoop failed");
             }
         }
 
@@ -92,37 +98,49 @@ namespace CoCoSy.Hubs
         public async Task<GameState> GetGame(Guid gameId)
         {
             var taskCompletionSource = new TaskCompletionSource<GameState>();
+
             var got = games.GetOrAdd(gameId, taskCompletionSource.Task);
             if (got != taskCompletionSource.Task)
             {
                 return await got;
             }
 
-            var blob = _container.GetBlobClient($"{gameId}.json");
-            if (!await blob.ExistsAsync())
+            try
             {
-                var gameState = new GameState();
-                await SaveGameAsync(gameId, gameState);
-                taskCompletionSource.SetResult(gameState);
-                return gameState;
+                var blob = _container.GetBlobClient($"{gameId}.json");
+                if (!await blob.ExistsAsync())
+                {
+                    var gameState = new GameState();
+                    await SaveGameAsync(gameId, gameState);
+                    taskCompletionSource.SetResult(gameState);
+                    return gameState;
+                }
+
+                var response = await blob.DownloadContentAsync();
+                var stored = JsonSerializer.Deserialize<StoredGameState>(response.Value.Content.ToString());
+                if (stored == null)
+                {
+                    var gameState = new GameState();
+                    await SaveGameAsync(gameId, gameState);
+                    taskCompletionSource.SetResult(gameState);
+                    return gameState;
+                }
+
+                var state = new GameState();
+                foreach (var name in stored.Names) { state.Names.Add(name); }
+                foreach (var option in stored.Options) { state.Options.Add(option); }
+                foreach (var vote in stored.Votes) { state.Votes.Add(vote); }
+
+                taskCompletionSource.SetResult(state);
+                return state;
             }
-
-            var response = await blob.DownloadContentAsync();
-            var stored = JsonSerializer.Deserialize<StoredGameState>(response.Value.Content.ToString());
-            if (stored == null) {
-                var gameState = new GameState();
-                await SaveGameAsync(gameId, gameState);
-                taskCompletionSource.SetResult(gameState);
-                return gameState;
+            catch (Exception ex) 
+            {
+                _logger.LogError(ex, "GetGame failed");
+                taskCompletionSource.SetException(ex);
+                games.TryRemove(gameId, out _);
+                throw;
             }
-
-            var state = new GameState();
-            foreach (var name in stored.Names) { state.Names.Add(name); }
-            foreach (var option in stored.Options) { state.Options.Add(option); }
-            foreach (var vote in stored.Votes) { state.Votes.Add(vote); }
-
-            taskCompletionSource.SetResult(state);
-            return state;
         }
     }
 }

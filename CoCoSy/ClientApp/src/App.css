@@ -19,6 +19,7 @@ body {
 }
 
 
+.recessed-input:hover,
 .recessed-container:hover {
     /* like 3/4 recssedPanelShadow */
     box-shadow: 0px 1px 2px rgba(255,255,255,0.5), inset 0px 1px 5px rgba(0,0,0,0.425), inset 0px 1px 1.5px rgba(0,0,0,0.625) !important;
@@ -27,6 +28,7 @@ body {
 }
 
 
+.recessed-input:focus,
 .recessed-input:focus,
 .recessed-container:focus-within {
     /* panelShadow  but swaped the insets*/

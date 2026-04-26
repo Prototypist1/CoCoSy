@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { topGradient, botGradient, shadow, glow } from './theme';
+import { topGradient, botGradient, shadow, glow, titleFontSize } from './theme';
 import { AppTitle } from './AppTitle';
 
 const titleStyle: React.CSSProperties = {
@@ -9,7 +9,7 @@ const titleStyle: React.CSSProperties = {
     backgroundClip: "text",
     WebkitBackgroundClip: "text",
     margin: 0,
-    fontSize: '3rem',
+    fontSize: titleFontSize,
     fontFamily: "'Inter Tight', system-ui, sans-serif",
     fontWeight: 600,
     textAlign: 'center',
@@ -18,7 +18,7 @@ const titleStyle: React.CSSProperties = {
 };
 
 const editingInputStyle: React.CSSProperties = {
-    fontSize: '3rem',
+    fontSize: titleFontSize,
     fontFamily: "'Inter Tight', system-ui, sans-serif",
     fontWeight: 600,
     textAlign: 'center',
@@ -56,7 +56,7 @@ export function AppBackground({ children,  gameName = '', onSetGameName }: {
 
     return (
         <div className="app-background" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'center', gap: 16, width: '100%', minHeight: '100vh', background: `linear-gradient(179.7deg, rgb(${topGradient},1) 0%, rgb(${botGradient},1) 100%)` }}>
-            <div style={{ height: '20vh', display: 'flex', alignItems: 'flex-end', width: '100%', justifyContent: 'center' }}>
+            <div style={{ height: '25vh', display: 'flex', alignItems: 'flex-end', width: '100%', justifyContent: 'center' }}>
                 {isEditing ? (
                     <input
                         ref={inputRef}

@@ -36,6 +36,10 @@ export function updateTopOption(id: string, topOption: string | null) {
     }
 }
 
+export function removeGame(id: string) {
+    saveRecentGames(getRecentGames().filter(g => g.id !== id));
+}
+
 export function updateGameName(id: string, gameName: string | null) {
     const games = getRecentGames();
     const entry = games.find(g => g.id === id);

@@ -11,6 +11,7 @@ export const overlayTopGradient = "255, 241, 242";
 export const overlayBotGradient = "153, 177, 149";
 
 export const shadow = "0, 0, 0";
+export const titleFontSize = '2.6rem';
 export const overlayBackdropFilter = "hue-rotate(-35deg) saturate(107%) brightness(112%) blur(10px)";
 export const backdropFilter = "hue-rotate(-30deg) saturate(105%) brightness(110%) blur(10px)";
 export const nintyBackdropFilter = "hue-rotate(-21deg) saturate(104%) brightness(107%) blur(10px)";

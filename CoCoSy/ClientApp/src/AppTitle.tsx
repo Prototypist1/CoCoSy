@@ -1,5 +1,5 @@
 import React from 'react';
-import { shadow, glow } from './theme';
+import { shadow, glow, titleFontSize } from './theme';
 
 const h1Style: React.CSSProperties = {
     backgroundColor: `rgb(${shadow},0.2)`,
@@ -8,7 +8,7 @@ const h1Style: React.CSSProperties = {
     backgroundClip: "text",
     WebkitBackgroundClip: "text",
     margin: 0,
-    fontSize: '3rem',
+    fontSize: titleFontSize,
     fontFamily: "'Inter Tight', system-ui, sans-serif",
     fontWeight: 600,
     flex: 1,

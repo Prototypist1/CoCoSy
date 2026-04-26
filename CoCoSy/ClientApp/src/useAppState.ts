@@ -129,14 +129,15 @@ export const useAppState = () => {
     const [state, dispatch] = useReducer(reducer, initialState);
 
     const { vote, setName, addOption, setGameName, refresh } = useMemo(() => {
+        const hubUrl = process.env.NODE_ENV === 'development'
+            ? `https://localhost:7277/relayhub?gameId=${gameId}`
+            : `/relayhub?gameId=${gameId}`;
         const connection = new signalR.HubConnectionBuilder()
-            .withUrl(`https://localhost:7277/relayhub?gameId=${gameId}`, {
+            .withUrl(hubUrl, {
                 withCredentials: false,
                 transport: signalR.HttpTransportType.WebSockets,
                 skipNegotiation: true,
             })
-            // use on local: https://localhost:7277/relayhub
-            // use in azure: /relayhub
             .configureLogging(signalR.LogLevel.Information)
             .build();
 

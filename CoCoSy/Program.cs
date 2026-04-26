@@ -6,20 +6,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy(name: "ReactProxy",
-        builder =>
-        {
-            // react is served at 44472
-            // we are served at 7277
-            builder.WithOrigins("https://localhost:7277", "https://localhost:44472")
-            .AllowAnyMethod()
-            .AllowAnyHeader()
-            .AllowCredentials();
-        });
-});
-
 //builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<CoCoSy.Hubs.BlobGameStore>();
@@ -34,8 +20,6 @@ var app = builder.Build();
 //    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
 //    app.UseHsts();
 //}
-
-app.UseCors("ReactProxy");
 
 //app.UseHttpsRedirection();
 app.UseStaticFiles();

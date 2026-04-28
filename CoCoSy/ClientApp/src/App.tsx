@@ -82,7 +82,7 @@ function App() {
                     const tickUnit = 0.1;
                     const tickCount = Math.ceil(absSupport / tickUnit) + 1;
 
-                    const tickWidthVw = `${(100/3.0) * tickUnit / maxSupport}vw`;
+                    const tickWidthVw = `${(100 / 3.0) * tickUnit / maxSupport}vw`;
                     const tickColor = `rgb(${shadow},${secondaryOpacity})`;
                     const tickGlow = `0 0 3px rgb(${glow},0.6), 0 0 8px rgb(${glow},0.4)`;
 
@@ -117,25 +117,25 @@ function App() {
                                 </div>
                                 <div className="card-center" style={{ display: 'flex', flexDirection: 'row', flex: 1, minWidth: 0 }}>
                                     <IconButton icon={"\uf137"} style={{ flex: '0 0 auto' }} onClick={() => {
-                                            const retractVote = canRetractVote(option.supporters);
-                                            if (retractVote !== undefined) {
-                                                actions.vote({ at: Date.now(), optionName: option.name, support: true, voterId, messageId: v4(), voteId: retractVote, add: false });
-                                            } else {
-                                                actions.vote({ at: Date.now(), optionName: option.name, support: false, voterId, messageId: v4(), voteId: v4(), add: true });
-                                            }
-                                        }} />
+                                        const retractVote = canRetractVote(option.supporters);
+                                        if (retractVote !== undefined) {
+                                            actions.vote({ at: Date.now(), optionName: option.name, support: true, voterId, messageId: v4(), voteId: retractVote, add: false });
+                                        } else {
+                                            actions.vote({ at: Date.now(), optionName: option.name, support: false, voterId, messageId: v4(), voteId: v4(), add: true });
+                                        }
+                                    }} />
                                     <div className="option-label" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%', fontSize: 20, fontWeight: 400, opacity: primaryOpacity, textShadow: primaryTextGlow }}>{option.name}</span>
                                         <span style={{ fontSize: '0.75em', fontWeight: 400, opacity: secondaryOpacity, textShadow: secondaryTextGlow }}>{(option.support ?? 0).toFixed(2)}</span>
                                     </div>
                                     <IconButton icon={"\uf138"} style={{ flex: '0 0 auto' }} onClick={() => {
-                                            const retractVote = canRetractVote(option.againsts);
-                                            if (retractVote !== undefined) {
-                                                actions.vote({ at: Date.now(), optionName: option.name, support: false, voterId, messageId: v4(), voteId: retractVote, add: false });
-                                            } else {
-                                                actions.vote({ at: Date.now(), optionName: option.name, support: true, voterId, messageId: v4(), voteId: v4(), add: true });
-                                            }
-                                        }} />
+                                        const retractVote = canRetractVote(option.againsts);
+                                        if (retractVote !== undefined) {
+                                            actions.vote({ at: Date.now(), optionName: option.name, support: false, voterId, messageId: v4(), voteId: retractVote, add: false });
+                                        } else {
+                                            actions.vote({ at: Date.now(), optionName: option.name, support: true, voterId, messageId: v4(), voteId: v4(), add: true });
+                                        }
+                                    }} />
                                 </div>
                                 <div className="support-bar" style={{ flex: bfFor, alignSelf: 'stretch', overflow: 'hidden', display: 'flex', flexDirection: 'row', transition: flexTransition }}>
                                     {makeTicks(false)}
@@ -179,58 +179,64 @@ function App() {
                     <div style={{ flex: 1 }} />
                 </div>
             </div>
-            
-            <IconButton icon={"\uf0c9"} style={{ position: 'fixed', top: 0, left: 0, zIndex: 201 }} onClick={() => setShowMenu(v => !v)} title="Menu" />
+
+            {!showMenu
+                && <IconButton icon={"\uf0c9"} style={{ position: 'fixed', top: 0, left: 0, zIndex: 201 }} onClick={() => setShowMenu(true)} title="Open menu" />
+            }
 
             {showMenu && (
-                <div style={{
-                    position: 'fixed', top: 0, left: 0, bottom: 0, width: 280, zIndex: 200, boxShadow: overlayShadow, background: `linear-gradient(179.7deg, rgb(${overlayTopGradient},1) 0%, rgb(${overlayBotGradient},1) 100%)`, overflowY: 'auto', fontFamily: "'Inter Tight', system-ui, sans-serif", color: '#333' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', padding: 24, gap: 16, minHeight: '100%' }}>
-                    <div style={{ height: 44 }} />
-                    <span style={{ fontSize: 12, fontWeight: 600, opacity: secondaryOpacity, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Set Name</span>
-                    <TextEntry
-                        value={pendingName}
-                        onChange={setPendingName}
-                        onCommit={name => { actions.setYourName(name); actions.setName({ at: Date.now(), name, voterId, messageId: v4() }); }}
-                        placeholder="Your name"
-                        icon={"\uf058"}
-                    />
-                    <span style={{ fontSize: 12, fontWeight: 600, opacity: secondaryOpacity, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Scan to Join</span>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <QRCodeSVG value={window.location.href} size={180} style={{ width: '100%', height: 'auto', filter: 'drop-shadow(0px 2px 6px rgba(0,0,0,0.2))' }} fgColor="rgba(0,0,0,0.8)" bgColor="rgba(255,255,255,0.6)" />
-                        <IconButton dark style={{ color: '#333', textShadow: 'none', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6, aspectRatio: 'unset', justifyContent: 'center', paddingTop: '4px', paddingBottom: '4px' }} onClick={() => navigator.clipboard.writeText(window.location.href)}>
-                            <span style={{ fontFamily: "'Inter Tight', system-ui, sans-serif", fontSize: 13 }}>Copy link</span>
-                            <span style={{ fontFamily: 'font-awesome', fontSize: 16, lineHeight: 1 }}>{"\uf0c5"}</span>
-                        </IconButton>
-                    </div>
-                    <span style={{ fontSize: 12, fontWeight: 600, opacity: secondaryOpacity, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Rounds</span>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', borderRadius: 8, border: '1px dashed rgba(0,0,0,0.18)', cursor: 'pointer' }} onClick={() => { window.location.href = '/' + v4(); }}>
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 12px' }}>
-                                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                    <span style={{ fontSize: 13, fontWeight: 600, opacity: 0.45 }}>New round</span>
-                                    <span style={{ fontFamily: 'font-awesome', fontSize: 13, opacity: 0.45, lineHeight: 1 }}>{"\uf055"}</span>
+                <div className="sidebar-scroll" style={{
+                    position: 'fixed', top: 0, left: 0, bottom: 0, width: 280, zIndex: 200, boxShadow: overlayShadow, background: `linear-gradient(179.7deg, rgb(${overlayTopGradient},1) 0%, rgb(${overlayBotGradient},1) 100%)`, overflowY: 'auto', fontFamily: "'Inter Tight', system-ui, sans-serif", color: '#333'
+                }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', paddingTop: 0, minHeight: '100%', boxSizing: 'border-box' }}>
+                        <div>
+                            <IconButton icon={"\uf0c9"} onClick={() => setShowMenu(false)} title="Close menu" />
+                        </div>
+                        <div style={{ padding: 24, paddingTop: 0 }}>
+                            <span style={{ fontSize: 12, fontWeight: 600, opacity: secondaryOpacity, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Set User Name</span>
+                            <TextEntry
+                                value={pendingName}
+                                onChange={setPendingName}
+                                onCommit={name => { actions.setYourName(name); actions.setName({ at: Date.now(), name, voterId, messageId: v4() }); }}
+                                placeholder="Your name"
+                                icon={"\uf058"}
+                            />
+                            <span style={{ fontSize: 12, fontWeight: 600, opacity: secondaryOpacity, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Scan to Join</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                <QRCodeSVG value={window.location.href} size={180} style={{ width: '100%', height: 'auto', filter: 'drop-shadow(0px 2px 6px rgba(0,0,0,0.2))' }} fgColor="rgba(0,0,0,0.8)" bgColor="rgba(255,255,255,0.6)" />
+                                <IconButton dark style={{ color: '#333', textShadow: 'none', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6, aspectRatio: 'unset', justifyContent: 'center', paddingTop: '4px', paddingBottom: '4px' }} onClick={() => navigator.clipboard.writeText(window.location.href)}>
+                                    <span style={{ fontFamily: "'Inter Tight', system-ui, sans-serif", fontSize: 13 }}>Copy link</span>
+                                    <span style={{ fontFamily: 'font-awesome', fontSize: 16, lineHeight: 1 }}>{"\uf0c5"}</span>
+                                </IconButton>
+                            </div>
+                            <span style={{ fontSize: 12, fontWeight: 600, opacity: secondaryOpacity, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Rounds</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', borderRadius: 8, border: '1px dashed rgba(0,0,0,0.18)', cursor: 'pointer' }} onClick={() => { window.location.href = '/' + v4(); }}>
+                                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 12px' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                            <span style={{ fontSize: 13, fontWeight: 600, opacity: 0.45 }}>New round</span>
+                                            <span style={{ fontFamily: 'font-awesome', fontSize: 13, opacity: 0.45, lineHeight: 1 }}>{"\uf055"}</span>
+                                        </div>
+                                        <span style={{ fontSize: 11, opacity: 0 }}>.</span>
+                                    </div>
                                 </div>
-                                <span style={{ fontSize: 11, opacity: 0 }}>.</span>
+                                {recentGames.map(g => (
+                                    <div key={g.id} style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', borderRadius: 8, backgroundColor: g.id === gameId ? 'rgba(0,0,0,0.08)' : 'transparent' }}>
+                                        <a
+                                            href={`/${g.id}`}
+                                            style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 12px', textDecoration: 'none', color: '#333', minWidth: 0 }}
+                                        >
+                                            <span style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', opacity: primaryOpacity, textShadow: primaryTextGlow }}>{g.gameName ?? g.topOption ?? '(empty game)'}</span>
+                                            <span style={{ fontSize: 11, opacity: secondaryOpacity, textShadow: secondaryTextGlow }}>{new Date(g.firstAccessed).toLocaleDateString()}</span>
+                                        </a>
+                                        <IconButton dark icon={"\uf00d"} style={{ color: '#333', textShadow: 'none', flexShrink: 0, fontSize: 12, opacity: 0.5 }} onClick={() => { removeGame(g.id); setRecentGames(getRecentGames()); }} />
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                        {recentGames.map(g => (
-                            <div key={g.id} style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', borderRadius: 8, backgroundColor: g.id === gameId ? 'rgba(0,0,0,0.08)' : 'transparent' }}>
-                                <a
-                                    href={`/${g.id}`}
-                                    style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 12px', textDecoration: 'none', color: '#333', minWidth: 0 }}
-                                >
-                                    <span style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', opacity: primaryOpacity, textShadow: primaryTextGlow }}>{g.gameName ?? g.topOption ?? '(empty game)'}</span>
-                                    <span style={{ fontSize: 11, opacity: secondaryOpacity, textShadow: secondaryTextGlow }}>{new Date(g.firstAccessed).toLocaleDateString()}</span>
-                                </a>
-                                <IconButton dark icon={"\uf00d"} style={{ color: '#333', textShadow: 'none', flexShrink: 0, fontSize: 12, opacity: 0.5 }} onClick={() => { removeGame(g.id); setRecentGames(getRecentGames()); }} />
-                            </div>
-                        ))}
-                    </div>
                     </div>
                 </div>
             )}
-
         </AppBackground>
     );
 }

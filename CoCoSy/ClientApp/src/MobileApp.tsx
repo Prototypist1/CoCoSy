@@ -156,17 +156,20 @@ export function MobileApp() {
                 />
             </div>
 
-            <IconButton icon={"\uf0c9"} style={{ position: 'fixed', top: 0, left: 0, zIndex: 201 }} onClick={() => setShowMenu(v => !v)} title="Menu" />
+            {!showMenu
+                ? <IconButton icon={"\uf0c9"} style={{ position: 'fixed', top: 0, left: 0, zIndex: 201 }} onClick={() => setShowMenu(true)} title="Open menu" />
+                : <IconButton icon={"\uf0c9"} style={{ position: 'fixed', top: 0, left: 0, zIndex: 201 }} onClick={() => setShowMenu(false)} title="Close menu" />
+            }
 
             {showMenu && (
-                <div style={{
+                <div className="sidebar-scroll" style={{
                     position: 'fixed', top: 0, left: 0, bottom: 0, right: 0, zIndex: 200, boxShadow: overlayShadow,
                     background: `linear-gradient(179.7deg, rgb(${overlayTopGradient},1) 0%, rgb(${overlayBotGradient},1) 100%)`,
                     overflowY: 'auto', fontFamily: "'Inter Tight', system-ui, sans-serif", color: '#333',
                 }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', padding: 24, gap: 16, minHeight: '100%' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', padding: 24, paddingTop: 0, gap: 16, minHeight: '100%', boxSizing: 'border-box' }}>
                     <div style={{ height: 44 }} />
-                    <span style={{ fontSize: 12, fontWeight: 600, opacity: secondaryOpacity, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Set Name</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, opacity: secondaryOpacity, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Set User Name</span>
                     <TextEntry
                         value={pendingName}
                         onChange={setPendingName}

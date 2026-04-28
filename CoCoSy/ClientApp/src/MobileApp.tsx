@@ -13,7 +13,7 @@ import {
     optionStyle, fadingDividerOuter, fadingDividerInner,
     widthTransition, shadow, glow, primaryOpacity, secondaryOpacity,
     primaryTextGlow, secondaryTextGlow, backdropFilter,
-    overlayShadow, overlayTopGradient, overlayBotGradient, recessedPanelShadow, recessedBackdropFilter, halfPanelShadow,
+    overlayShadow, overlayTopGradient, overlayBotGradient, recessedPanelShadow, recessedBackdropFilter, halfPanelShadow, sidebarTitlePaddingTop, sidebarTitlePaddingBottom,
 } from './theme';
 import { getRecentGames, RecentGame, touchGame, updateTopOption, updateGameName, removeGame } from './recentGames';
 import { consolidate, canRetractVote } from './voteUtils';
@@ -157,8 +157,7 @@ export function MobileApp() {
             </div>
 
             {!showMenu
-                ? <IconButton icon={"\uf0c9"} style={{ position: 'fixed', top: 0, left: 0, zIndex: 201 }} onClick={() => setShowMenu(true)} title="Open menu" />
-                : <IconButton icon={"\uf0c9"} style={{ position: 'fixed', top: 0, left: 0, zIndex: 201 }} onClick={() => setShowMenu(false)} title="Close menu" />
+                && <IconButton icon={"\uf0c9"} style={{ position: 'fixed', top: 0, left: 0, zIndex: 201 }} onClick={() => setShowMenu(true)} title="Open menu" />
             }
 
             {showMenu && (
@@ -167,9 +166,12 @@ export function MobileApp() {
                     background: `linear-gradient(179.7deg, rgb(${overlayTopGradient},1) 0%, rgb(${overlayBotGradient},1) 100%)`,
                     overflowY: 'auto', fontFamily: "'Inter Tight', system-ui, sans-serif", color: '#333',
                 }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', padding: 24, paddingTop: 0, gap: 16, minHeight: '100%', boxSizing: 'border-box' }}>
-                    <div style={{ height: 44 }} />
-                    <span style={{ fontSize: 12, fontWeight: 600, opacity: secondaryOpacity, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Set User Name</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', paddingTop: 0, minHeight: '100%', boxSizing: 'border-box' }}>
+                        <div>
+                            <IconButton icon={"\uf0c9"} onClick={() => setShowMenu(false)} title="Close menu" />
+                        </div>
+                        <div style={{ padding: 24, paddingTop: 0 }}>
+                    <span style={{ display: 'block', paddingBottom: sidebarTitlePaddingBottom, fontSize: 12, fontWeight: 600, opacity: secondaryOpacity, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Set User Name</span>
                     <TextEntry
                         value={pendingName}
                         onChange={setPendingName}
@@ -177,7 +179,7 @@ export function MobileApp() {
                         placeholder="Your name"
                         icon={"\uf058"}
                     />
-                    <span style={{ fontSize: 12, fontWeight: 600, opacity: secondaryOpacity, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Scan to Join</span>
+                    <span style={{ display: 'block', paddingTop: sidebarTitlePaddingTop, paddingBottom: sidebarTitlePaddingBottom, fontSize: 12, fontWeight: 600, opacity: secondaryOpacity, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Scan to Join</span>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         <QRCodeSVG value={window.location.href} size={180} style={{ width: '100%', height: 'auto', filter: 'drop-shadow(0px 2px 6px rgba(0,0,0,0.2))' }} fgColor="rgba(0,0,0,0.8)" bgColor="rgba(255,255,255,0.6)" />
                         <IconButton dark style={{ color: '#333', textShadow: 'none', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6, aspectRatio: 'unset', justifyContent: 'center', paddingTop: '4px', paddingBottom: '4px' }} onClick={() => navigator.clipboard.writeText(window.location.href)}>
@@ -185,7 +187,7 @@ export function MobileApp() {
                             <span style={{ fontFamily: 'font-awesome', fontSize: 16, lineHeight: 1 }}>{"\uf0c5"}</span>
                         </IconButton>
                     </div>
-                    <span style={{ fontSize: 12, fontWeight: 600, opacity: secondaryOpacity, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Rounds</span>
+                    <span style={{ display: 'block', paddingTop: sidebarTitlePaddingTop, paddingBottom: sidebarTitlePaddingBottom, fontSize: 12, fontWeight: 600, opacity: secondaryOpacity, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Rounds</span>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', borderRadius: 8, border: '1px dashed rgba(0,0,0,0.18)', cursor: 'pointer' }} onClick={() => { window.location.href = '/' + v4(); }}>
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 12px' }}>
@@ -206,6 +208,7 @@ export function MobileApp() {
                             </div>
                         ))}
                     </div>
+                        </div>
                     </div>
                 </div>
             )}

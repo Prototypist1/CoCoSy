@@ -48,6 +48,9 @@ export const fadingDividerInner: CSSProperties = {
     boxShadow: `0 0 4px rgb(${glow},0.4)`,
 };
 
+export const sidebarTitlePaddingTop = 16;
+export const sidebarTitlePaddingBottom = 8;
+
 export const buttonPadding = 16;
 
 export const buttonStyle: CSSProperties = {

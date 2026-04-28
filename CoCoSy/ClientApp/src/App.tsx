@@ -14,7 +14,7 @@ import { useIsMobile } from './useIsMobile';
 import { consolidate, canRetractVote } from './voteUtils';
 import {
     optionStyle, buttonStyle, fadingDividerOuter, fadingDividerInner,
-    flexTransition, widthTransition, shadow, glow, primaryOpacity, secondaryOpacity, primaryTextGlow, secondaryTextGlow, backdropFilter, halfBackdropFilter, nintyBackdropFilter, overlayBackdropFilter, overlayShadow, overlayTopGradient, overlayBotGradient,
+    flexTransition, widthTransition, shadow, glow, primaryOpacity, secondaryOpacity, primaryTextGlow, secondaryTextGlow, backdropFilter, halfBackdropFilter, nintyBackdropFilter, overlayBackdropFilter, overlayShadow, overlayTopGradient, overlayBotGradient, sidebarTitlePaddingTop, sidebarTitlePaddingBottom,
 } from './theme';
 import { Vote } from './types';
 import { getRecentGames, RecentGame, touchGame, updateTopOption, updateGameName, removeGame } from './recentGames';
@@ -193,7 +193,7 @@ function App() {
                             <IconButton icon={"\uf0c9"} onClick={() => setShowMenu(false)} title="Close menu" />
                         </div>
                         <div style={{ padding: 24, paddingTop: 0 }}>
-                            <span style={{ fontSize: 12, fontWeight: 600, opacity: secondaryOpacity, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Set User Name</span>
+                            <span style={{ display: 'block', paddingBottom: sidebarTitlePaddingBottom, fontSize: 12, fontWeight: 600, opacity: secondaryOpacity, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Set User Name</span>
                             <TextEntry
                                 value={pendingName}
                                 onChange={setPendingName}
@@ -201,7 +201,7 @@ function App() {
                                 placeholder="Your name"
                                 icon={"\uf058"}
                             />
-                            <span style={{ fontSize: 12, fontWeight: 600, opacity: secondaryOpacity, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Scan to Join</span>
+                            <span style={{ display: 'block', paddingTop: sidebarTitlePaddingTop, paddingBottom: sidebarTitlePaddingBottom, fontSize: 12, fontWeight: 600, opacity: secondaryOpacity, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Scan to Join</span>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                 <QRCodeSVG value={window.location.href} size={180} style={{ width: '100%', height: 'auto', filter: 'drop-shadow(0px 2px 6px rgba(0,0,0,0.2))' }} fgColor="rgba(0,0,0,0.8)" bgColor="rgba(255,255,255,0.6)" />
                                 <IconButton dark style={{ color: '#333', textShadow: 'none', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6, aspectRatio: 'unset', justifyContent: 'center', paddingTop: '4px', paddingBottom: '4px' }} onClick={() => navigator.clipboard.writeText(window.location.href)}>
@@ -209,7 +209,7 @@ function App() {
                                     <span style={{ fontFamily: 'font-awesome', fontSize: 16, lineHeight: 1 }}>{"\uf0c5"}</span>
                                 </IconButton>
                             </div>
-                            <span style={{ fontSize: 12, fontWeight: 600, opacity: secondaryOpacity, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Rounds</span>
+                            <span style={{ display: 'block', paddingTop: sidebarTitlePaddingTop, paddingBottom: sidebarTitlePaddingBottom, fontSize: 12, fontWeight: 600, opacity: secondaryOpacity, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Rounds</span>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                 <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', borderRadius: 8, border: '1px dashed rgba(0,0,0,0.18)', cursor: 'pointer' }} onClick={() => { window.location.href = '/' + v4(); }}>
                                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 12px' }}>
